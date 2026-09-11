@@ -14,6 +14,10 @@
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" />
 </p>
 
+<p align="center">
+  <img src="docs/assets/screenshot-v1.0.0-alpha.png" alt="RemoteManager v1.0.0-alpha Screenshot" width="850" />
+</p>
+
 ---
 
 ## 💡 The Problem: Windows RDP Credential Overwrite
