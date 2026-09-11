@@ -1,0 +1,112 @@
+name: Build & Release Remote Manager
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publish as GitHub Release'
+        required: false
+        type: boolean
+        default: false
+      is_prerelease:
+        description: 'Mark release as pre-release'
+        required: false
+        type: boolean
+        default: false
+      version_override:
+        description: 'Override version (e.g. 1.0.1). Defaults to tag or 1.0.0.'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build, Test & Package (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Determine Version
+        id: versioning
+        shell: pwsh
+        run: |
+          $ver = "${{ github.event.inputs.version_override }}"
+          if ([string]::IsNullOrWhiteSpace($ver)) {
+            $ref = "${{ github.ref }}"
+            if ($ref -like "refs/tags/v*") {
+              $ver = $ref.Substring(11) # Remove refs/tags/v
+            } else {
+              $ver = "1.0.0"
+            }
+          }
+          # Strip any leading 'v'
+          $ver = $ver.TrimStart('v')
+          Write-Host "Resolved Build Version: $ver"
+          echo "BUILD_VERSION=$ver" >> $env:GITHUB_ENV
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: Restore Tools & WiX Extension
+        shell: pwsh
+        run: |
+          dotnet tool restore
+          dotnet wix extension add -g WixToolset.UI.wixext/5.0.2
+
+      - name: Run Tests & Build Packages (Portable ZIP & MSI)
+        shell: pwsh
+        run: |
+          .\build.ps1 -Target All -Version "${{ env.BUILD_VERSION }}" -OutputDir artifacts
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemoteManager-v${{ env.BUILD_VERSION }}-windows
+          path: |
+            artifacts/RemoteManager-*.zip
+            artifacts/RemoteManager-*.msi
+            artifacts/checksums.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || format('v{0}', env.BUILD_VERSION) }}
+          name: Vyntech Remote Manager v${{ env.BUILD_VERSION }}
+          prerelease: ${{ github.event.inputs.is_prerelease == true }}
+          generate_release_notes: true
+          files: |
+            artifacts/RemoteManager-*.zip
+            artifacts/RemoteManager-*.msi
+            artifacts/checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,68 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Vyntech Remote Manager"
+           Manufacturer="Vyntech"
+           Version="$(var.Version)"
+           UpgradeCode="7E99DCF5-199A-460B-8FF4-4BD549E7BF92"
+           Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.SourceDir)\src\RemoteManager.App\Assets\vyntech-logo.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPHELPLINK" Value="https://vyntech.au" />
+    <Property Id="ARPURLINFOABOUT" Value="https://vyntech.au" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="CompanyFolder" Name="Vyntech">
+        <Directory Id="INSTALLFOLDER" Name="Remote Manager" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Vyntech Remote Manager" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)\**" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="AppShortcuts" Directory="INSTALLFOLDER">
+      <Component Id="AppShortcutComponent" Guid="41ACBE9E-FBFE-493B-8C45-A67AE3DC9902">
+        <Shortcut Id="StartMenuShortcut"
+                  Directory="ApplicationProgramsFolder"
+                  Name="Vyntech Remote Manager"
+                  Description="Modern multi-protocol remote desktop manager"
+                  Target="[INSTALLFOLDER]RemoteManager.App.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <Shortcut Id="DesktopShortcut"
+                  Directory="DesktopFolder"
+                  Name="Vyntech Remote Manager"
+                  Description="Modern multi-protocol remote desktop manager"
+                  Target="[INSTALLFOLDER]RemoteManager.App.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <RemoveFolder Id="CleanUpProgramMenu" Directory="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU"
+                       Key="Software\Vyntech\RemoteManager"
+                       Name="installed"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="MainFeature" Title="Vyntech Remote Manager" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="AppShortcuts" />
+    </Feature>
+
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.SourceDir)\packaging\license.rtf" />
+  </Package>
+</Wix>

@@ -1,0 +1,25 @@
+<Application x:Class="RemoteManager.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Global Fluent UI ComboBox: Inherit directly from WPF-UI's DefaultComboBoxStyle and ensure vertical centering -->
+            <Style TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="Padding" Value="10,0,32,0"/>
+                <Setter Property="MinHeight" Value="34"/>
+            </Style>
+
+            <Style TargetType="ComboBoxItem" BasedOn="{StaticResource DefaultComboBoxItemStyle}">
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="Padding" Value="10,6,10,6"/>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,340 @@
+<UserControl x:Class="RemoteManager.App.Views.AboutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             Background="{DynamicResource ApplicationBackgroundBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="40,32">
+        <StackPanel MaxWidth="860" MinWidth="640" HorizontalAlignment="Center">
+
+            <!-- HERO HEADER CARD -->
+            <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                    CornerRadius="10" Padding="28,24" Margin="0,0,0,24">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- VynTech Logo -->
+                    <Image Grid.Column="0" Source="/Assets/vyntech-logo.png" Width="64" Height="64" Margin="0,0,24,0"
+                           RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
+
+                    <!-- Title & Tagline -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="RemoteManager" FontSize="26" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                            <Border Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="8,2" VerticalAlignment="Center">
+                                <TextBlock Text="v1.0.0" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                            </Border>
+                        </StackPanel>
+
+                        <TextBlock Text="Part of the VynTech Developer Ecosystem"
+                                   FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,6"/>
+
+                        <TextBlock Text="Modern, secure native Windows multi-protocol connection &amp; credential manager with zero credential collisions."
+                                   FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- SECTION: PURPOSE & MISSION -->
+            <TextBlock Text="Purpose &amp; Mission" FontSize="16" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+
+            <!-- Modern Mission Banner Card -->
+            <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                    CornerRadius="10" Padding="26,22" Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="ENGINEERED FOR MODERN INFRASTRUCTURE"
+                                   FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,6"/>
+                        <TextBlock Text="Empowering sysadmins and engineers with seamless, collision-free remote management."
+                                   FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <TextBlock Text="Legacy remote tools were never designed for environments where one engineer manages dozens of different privileged accounts on identical IP addresses. RemoteManager eliminates Windows credential collisions entirely by isolating credentials into an encrypted local vault with in-memory injection — giving you instant, concurrent access across RDP, SSH, VNC, and Web from a single unified workspace."
+                                   FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" LineHeight="20"/>
+                    </StackPanel>
+
+                    <!-- Mission Graphic Accent -->
+                    <Border Grid.Column="1" Width="72" Height="72" CornerRadius="36" Margin="28,0,4,0"
+                            VerticalAlignment="Center" HorizontalAlignment="Right"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1">
+                        <ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="32" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- 3 Core Pillars (Modern Card Grid) -->
+            <UniformGrid Columns="3" Margin="0,0,0,24">
+                <!-- Pillar 1: Zero Credential Collision -->
+                <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="20,18" Margin="0,0,6,0">
+                    <StackPanel>
+                        <Border Width="38" Height="38" CornerRadius="8" Background="#1A0078D4" Margin="0,0,0,14" HorizontalAlignment="Left">
+                            <ui:SymbolIcon Symbol="Key24" FontSize="18" Foreground="#0078D4" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Zero Collision Engine" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,6"/>
+                        <TextBlock Text="Isolates credentials in memory per session tab so multiple accounts (Admin, Auditor, Root) never overwrite each other on the same IP."
+                                   FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" LineHeight="18"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Pillar 2: Unified Protocol Hub -->
+                <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="20,18" Margin="3,0,3,0">
+                    <StackPanel>
+                        <Border Width="38" Height="38" CornerRadius="8" Background="#1A107C41" Margin="0,0,0,14" HorizontalAlignment="Left">
+                            <ui:SymbolIcon Symbol="Grid24" FontSize="18" Foreground="#107C41" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Unified Protocol Hub" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,6"/>
+                        <TextBlock Text="Seamlessly blends embedded RDP, auto-detected SSH terminals, built-in VNC, and isolated Web portals within one high-performance interface."
+                                   FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" LineHeight="18"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Pillar 3: 100% Local Privacy & Sovereignty -->
+                <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="20,18" Margin="6,0,0,0">
+                    <StackPanel>
+                        <Border Width="38" Height="38" CornerRadius="8" Background="#1A8764B8" Margin="0,0,0,14" HorizontalAlignment="Left">
+                            <ui:SymbolIcon Symbol="LockClosed24" FontSize="18" Foreground="#8764B8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Privacy &amp; Sovereignty" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,6"/>
+                        <TextBlock Text="100% offline and local. Encrypted with hardware-backed Windows DPAPI with zero telemetry, zero cloud synchronisation, and zero lock-in."
+                                   FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" LineHeight="18"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- SECTION: SUPPORTED PROTOCOLS & ENGINES -->
+            <TextBlock Text="Supported Protocols &amp; Architecture" FontSize="16" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+
+            <UniformGrid Columns="2" Margin="0,0,0,24">
+                <!-- Protocol 1: RDP -->
+                <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="16" Margin="0,0,8,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Border Background="#0078D4" Width="28" Height="28" CornerRadius="4" Margin="0,0,10,0">
+                                <TextBlock Text="RDP" FontWeight="Bold" FontSize="11" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Remote Desktop (RDP)" FontWeight="Bold" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="ActiveX AxMsRdpClient &amp; Isolated MSTSC" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Text="Embedded tabbed sessions with in-memory credential injection, SmartSizing, clipboard &amp; audio redirection, and isolated external fallback launcher."
+                                   FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Protocol 2: SSH -->
+                <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="16" Margin="8,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Border Background="#107C41" Width="28" Height="28" CornerRadius="4" Margin="0,0,10,0">
+                                <TextBlock Text="SSH" FontWeight="Bold" FontSize="11" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Secure Shell (SSH)" FontWeight="Bold" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="Auto-Detect &amp; Custom Client Support" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Text="Automatic system-wide detection of Windows Terminal (wt.exe), OpenSSH, PuTTY, KiTTY, Git Bash, MobaXterm, and Bitvise, plus custom client executable routing."
+                                   FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Protocol 3: Web -->
+                <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="16" Margin="0,0,8,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Border Background="#881798" Width="28" Height="28" CornerRadius="4" Margin="0,0,10,0">
+                                <TextBlock Text="Web" FontWeight="Bold" FontSize="11" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Web Consoles &amp; Portals" FontWeight="Bold" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="Microsoft WebView2 (Chromium)" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Text="Independent UserDataFolder per connection ID — manage multiple AWS, Azure, Proxmox, and firewall logins simultaneously with zero cookie or storage leakage."
+                                   FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Protocol 4: VNC -->
+                <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="16" Margin="8,0,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Border Background="#D83B01" Width="28" Height="28" CornerRadius="4" Margin="0,0,10,0">
+                                <TextBlock Text="VNC" FontWeight="Bold" FontSize="11" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Virtual Network Computing" FontWeight="Bold" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="Built-in Viewer &amp; Custom Clients" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Text="Native built-in tabbed VNC desktop viewer with scaling and Ctrl+Alt+Del, plus custom and auto-detected external viewer support."
+                                   FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- SECTION: SECURITY & LOCAL STORAGE -->
+            <TextBlock Text="Security, Encryption &amp; Privacy" FontSize="16" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20,18" Margin="0,0,0,24">
+                <StackPanel>
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="Hardware &amp; Windows DPAPI Protection" FontWeight="Bold" FontSize="14"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,10,0"/>
+                                <Border Background="#107C41" CornerRadius="4" Padding="6,2">
+                                    <TextBlock Text="DPAPI ACTIVE" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="All passwords and secrets are encrypted via Windows ProtectedData tied to your Windows logon session. Data is never sent to any cloud server or written to disk in plain text."
+                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Open Data Folder" Click="OnOpenFolderClick" Height="32" Padding="14,0" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Separator Background="{DynamicResource ControlElevationBorderBrush}" Margin="0,0,0,16"/>
+
+                    <!-- Security Contact -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Security Inquiries &amp; Vulnerability Reporting" FontWeight="SemiBold" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                            <TextBlock Text="As an open-source project committed to infrastructure safety, we coordinate responsible disclosure for all vulnerability reports."
+                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Security Team Contact: " FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="security@vyntech.com.au" FontSize="12" FontWeight="Bold" Foreground="#0078D4"
+                                           VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Button Grid.Column="1" Content="Send Security Email" Click="OnEmailSecurityClick" Height="32" Padding="14,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- SECTION: CONTRIBUTING & VYNTECH ECOSYSTEM -->
+            <TextBlock Text="Open Source Community &amp; Ecosystem" FontSize="16" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20,18" Margin="0,0,0,24">
+                <StackPanel>
+                    <TextBlock Text="Contributions Warmly Welcome!" FontWeight="Bold" FontSize="14"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,6"/>
+                    <TextBlock Text="RemoteManager is an open-source community effort. We welcome pull requests for new protocol handlers (such as Telnet, SFTP, or Serial/COM), UI improvements, localized languages, or bug fixes."
+                               FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,16"/>
+
+                    <Separator Background="{DynamicResource ControlElevationBorderBrush}" Margin="0,0,0,16"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Part of the VynTech Ecosystem" FontWeight="SemiBold" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                            <TextBlock Text="VynTech focuses on crafting high-performance, secure, and developer-first tools for cloud engineering, systems administration, and automated infrastructure environments."
+                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="VynTech GitHub" Click="OnOpenGitHubOrgClick" Height="32" Padding="14,0" Margin="0,0,8,0"/>
+                            <Button Content="Document Center" Click="OnOpenDocsClick" Height="32" Padding="14,0"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- FOOTER -->
+            <StackPanel Margin="0,12,0,24" HorizontalAlignment="Center">
+                <TextBlock FontSize="12" HorizontalAlignment="Center" Margin="0,0,0,8">
+                    <Hyperlink NavigateUri="https://www.vyntech.com.au" RequestNavigate="OnHyperlinkRequestNavigate"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextDecorations="{x:Null}">
+                        Website
+                    </Hyperlink>
+                    <Run Text="   •   " Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    <Hyperlink NavigateUri="https://www.vyntech.com.au/documents" RequestNavigate="OnHyperlinkRequestNavigate"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextDecorations="{x:Null}">
+                        Documentation
+                    </Hyperlink>
+                    <Run Text="   •   " Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    <Hyperlink NavigateUri="https://www.vyntech.com.au/legal/terms" RequestNavigate="OnHyperlinkRequestNavigate"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextDecorations="{x:Null}">
+                        Terms of Service
+                    </Hyperlink>
+                    <Run Text="   •   " Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    <Hyperlink NavigateUri="https://www.vyntech.com.au/legal/privacy" RequestNavigate="OnHyperlinkRequestNavigate"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextDecorations="{x:Null}">
+                        Privacy Policy
+                    </Hyperlink>
+                    <Run Text="   •   " Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    <Hyperlink NavigateUri="https://www.vyntech.com.au/contact" RequestNavigate="OnHyperlinkRequestNavigate"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextDecorations="{x:Null}">
+                        Contact
+                    </Hyperlink>
+                </TextBlock>
+
+                <TextBlock Text="Copyright © 2026 VynTech Pty Ltd. All rights reserved. • Licensed under the MIT License."
+                           FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

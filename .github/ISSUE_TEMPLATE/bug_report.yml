@@ -1,0 +1,68 @@
+name: Bug Report
+description: Report a reproducible problem or unexpected behavior in RemoteManager
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please provide as much context as possible.
+  - type: input
+    id: version
+    attributes:
+      label: RemoteManager Version
+      description: What version or release of RemoteManager are you using? (e.g., v1.0.0, Portable or MSI)
+      placeholder: v1.0.0 (MSI)
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Select your Windows operating system version
+      options:
+        - Windows 11 (23H2 or newer)
+        - Windows 11 (22H2 or older)
+        - Windows 10 (22H2 / Build 19045)
+        - Windows Server 2022
+        - Windows Server 2019
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: protocol
+    attributes:
+      label: Affected Protocol
+      options:
+        - RDP (Remote Desktop)
+        - SSH
+        - VNC
+        - Web (WebView2)
+        - Application UI / General
+        - Database / Storage
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what the problem is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this behavior?
+      value: |
+        1. Open RemoteManager
+        2. Go to '...'
+        3. Click on '....'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Output
+      description: Paste any relevant logs from the Logs tab or `%LocalAppData%\RemoteManager\logs` (ensure no sensitive passwords are included).
+      render: shell

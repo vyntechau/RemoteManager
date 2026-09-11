@@ -1,0 +1,70 @@
+<Window x:Class="RemoteManager.App.Views.DetachedSessionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Remote Session" Height="700" Width="1100"
+        WindowStartupLocation="CenterScreen"
+        Icon="/Assets/vyntech-logo.png"
+        Background="{DynamicResource ApplicationBackgroundBrush}"
+        KeyDown="OnWindowKeyDown">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Tool Strip -->
+        <Border Grid.Row="0" Background="{DynamicResource ControlFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: Title, Protocol badge, Address -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="SessionTitleText" Text="Session" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Border x:Name="ProtocolBadge" Background="{DynamicResource AccentFillColorDefaultBrush}"
+                            CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
+                        <TextBlock x:Name="ProtocolText" Text="RDP" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                    </Border>
+                    <TextBlock x:Name="SessionAddressText" Text="" FontSize="11"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Right: Action Buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:Button Content="Ctrl+Alt+Del" Click="OnCadClick"
+                               Height="28" Padding="10,0" Margin="0,0,8,0"
+                               ToolTip="Send Ctrl+Alt+Del to remote machine" />
+
+                    <ui:Button Content="Copy" Click="OnCopyClick"
+                               Height="28" Padding="10,0" Margin="0,0,8,0"
+                               ToolTip="Send Copy (Ctrl+C) to remote machine" />
+
+                    <ui:Button Content="Paste" Click="OnPasteClick"
+                               Height="28" Padding="10,0" Margin="0,0,8,0"
+                               ToolTip="Send Paste (Ctrl+V) to remote machine" />
+
+                    <ui:Button Content="Dock to Tabs" Click="OnDockClick"
+                               Height="28" Padding="10,0" Margin="0,0,8,0"
+                               ToolTip="Dock this session back into the main tab bar" />
+
+                    <ui:Button x:Name="FullscreenButton" Content="Fullscreen (F11)" Click="OnFullscreenClick"
+                               Height="28" Padding="10,0" Margin="0,0,8,0"
+                               ToolTip="Toggle fullscreen mode (F11)" />
+
+                    <ui:Button Content="Disconnect" Click="OnDisconnectClick"
+                               Appearance="Danger" Height="28" Padding="12,0"
+                               ToolTip="Disconnect remote session" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Session Host Content -->
+        <ContentControl x:Name="SessionHostContainer" Grid.Row="1" />
+    </Grid>
+</Window>

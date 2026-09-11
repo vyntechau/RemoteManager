@@ -23,10 +23,14 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
-# .NET Core
+# .NET Core & Packaging
 project.lock.json
 project.fragment.lock.json
 artifacts/
+dist/
+.wix/
+*.msi
+*.wixpdb
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
@@ -55,3 +59,12 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Visual Studio & IDE files
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/
+*.suo
+*.userprefs

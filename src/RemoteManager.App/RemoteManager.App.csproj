@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\RemoteManager.Core\RemoteManager.Core.csproj" />
+    <ProjectReference Include="..\RemoteManager.Data\RemoteManager.Data.csproj" />
+    <ProjectReference Include="..\RemoteManager.Protocols\RemoteManager.Protocols.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\vyntech-logo.ico</ApplicationIcon>
+    <Product>Vyntech Remote Manager</Product>
+    <Company>Vyntech</Company>
+    <Authors>Vyntech</Authors>
+    <Description>Modern open-source native Windows connection and credential manager</Description>
+    <Copyright>Copyright (c) 2026 Vyntech</Copyright>
+    <RepositoryUrl>https://github.com/vyntechau/RemoteManager</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\**\*" />
+  </ItemGroup>
+</Project>
