@@ -7,6 +7,8 @@ namespace RemoteManager.Protocols.Rdp;
 
 public static class RdpIsolatedLauncher
 {
+    internal static Func<ProcessStartInfo, Process?> ProcessLauncher { get; set; } = psi => Process.Start(psi);
+
     public static Process Launch(
         string host,
         int port,
@@ -39,33 +41,35 @@ public static class RdpIsolatedLauncher
             UseShellExecute = true
         };
 
-        var process = Process.Start(startInfo)
+        var process = ProcessLauncher(startInfo)
             ?? throw new InvalidOperationException("Failed to launch mstsc.exe");
 
         // Clean up temp file and temporary credentials when process exits
         process.EnableRaisingEvents = true;
-        process.Exited += (s, e) =>
-        {
-            LogEngine.Instance.Info("Protocol.RDP", $"mstsc.exe process exited for {targetHost}. Cleaning up temporary files and vault credentials.");
-            try
-            {
-                if (File.Exists(rdpFile))
-                {
-                    File.Delete(rdpFile);
-                }
-            }
-            catch { }
-
-            if (injected)
-            {
-                PurgeCredential(host);
-            }
-        };
+        process.Exited += (s, e) => CleanupProcessExit(targetHost, rdpFile, injected, host);
 
         return process;
     }
 
-    private static void InjectCredential(string target, string username, string password)
+    internal static void CleanupProcessExit(string targetHost, string rdpFile, bool injected, string host)
+    {
+        LogEngine.Instance.Info("Protocol.RDP", $"mstsc.exe process exited for {targetHost}. Cleaning up temporary files and vault credentials.");
+        try
+        {
+            if (File.Exists(rdpFile))
+            {
+                File.Delete(rdpFile);
+            }
+        }
+        catch { }
+
+        if (injected)
+        {
+            PurgeCredential(host);
+        }
+    }
+
+    internal static void InjectCredential(string target, string username, string password)
     {
         try
         {
@@ -81,7 +85,7 @@ public static class RdpIsolatedLauncher
                 UseShellExecute = false,
                 RedirectStandardOutput = true
             };
-            using var proc = Process.Start(psi);
+            using var proc = ProcessLauncher(psi);
             proc?.WaitForExit(3000);
         }
         catch
@@ -90,7 +94,7 @@ public static class RdpIsolatedLauncher
         }
     }
 
-    private static void PurgeCredential(string target)
+    internal static void PurgeCredential(string target)
     {
         try
         {
@@ -103,7 +107,7 @@ public static class RdpIsolatedLauncher
                 UseShellExecute = false,
                 RedirectStandardOutput = true
             };
-            using var proc = Process.Start(psi);
+            using var proc = ProcessLauncher(psi);
             proc?.WaitForExit(3000);
         }
         catch
@@ -112,7 +116,7 @@ public static class RdpIsolatedLauncher
         }
     }
 
-    private static string GenerateTempRdpFile(string targetHost, string? username, string? domain, bool fullScreen)
+    internal static string GenerateTempRdpFile(string targetHost, string? username, string? domain, bool fullScreen)
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"RemoteManager_{Guid.NewGuid():N}.rdp");
 

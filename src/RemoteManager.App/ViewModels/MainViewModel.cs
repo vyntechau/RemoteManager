@@ -76,6 +76,9 @@ public partial class MainViewModel : ObservableObject
     public Func<string, string, bool>? RequestConfirmation { get; set; }
     public Action<SessionTabViewModel>? RequestPopOutWindow { get; set; }
     public Action<SessionTabViewModel>? RequestFullscreenWindow { get; set; }
+    public Action<string, string> ShowErrorMessage { get; set; } = (title, msg) => MessageBox.Show(msg, title, MessageBoxButton.OK, MessageBoxImage.Error);
+    public Action<string, string> ShowWarningMessage { get; set; } = (title, msg) => MessageBox.Show(msg, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+    internal Func<ConnectionItem, object?>? SessionControlFactory { get; set; }
 
     public ConnectionsViewModel ConnectionsVM { get; }
 
@@ -225,8 +228,7 @@ public partial class MainViewModel : ObservableObject
                 catch (Exception ex)
                 {
                     LogEngine.Instance.Error("Security", $"Failed to decrypt credentials '{cred.Title}'", ex);
-                    MessageBox.Show($"Failed to decrypt credentials: {ex.Message}", "Security Error",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    ShowErrorMessage("Security Error", $"Failed to decrypt credentials: {ex.Message}");
                 }
             }
         }
@@ -242,7 +244,7 @@ public partial class MainViewModel : ObservableObject
                 }
 
                 // Tabbed or Fullscreen mode: Embedded ActiveX inside WPF with full action controls
-                var rdpHost = new RdpHostControl();
+                var rdpHost = SessionControlFactory?.Invoke(connection) ?? new RdpHostControl();
                 var rdpSession = new SessionTabViewModel(connection, rdpHost);
                 SetupTabCallbacks(rdpSession);
 
@@ -254,11 +256,14 @@ public partial class MainViewModel : ObservableObject
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(300); // Give control time to initialize handle
-                    Application.Current.Dispatcher.Invoke(() =>
+                    Application.Current?.Dispatcher?.Invoke(() =>
                     {
                         try
                         {
-                            rdpHost.Connect(connection.Host, connection.Port, cred?.Username, cred?.Domain, decryptedPassword);
+                            if (rdpHost is IRdpHostControl rdpControl)
+                            {
+                                rdpControl.Connect(connection.Host, connection.Port, cred?.Username, cred?.Domain, decryptedPassword);
+                            }
                             rdpSession.Status = "Connected";
                             rdpSession.IsConnected = true;
 
@@ -276,7 +281,7 @@ public partial class MainViewModel : ObservableObject
                 break;
 
             case ProtocolType.Web:
-                var webHost = new WebView2SessionControl(connection.Id);
+                var webHost = SessionControlFactory?.Invoke(connection) ?? new WebView2SessionControl(connection.Id);
                 var webSession = new SessionTabViewModel(connection, webHost);
                 SetupTabCallbacks(webSession);
 
@@ -284,14 +289,17 @@ public partial class MainViewModel : ObservableObject
                 SelectedSession = webSession;
                 webSession.Status = "Loading";
 
-                _ = webHost.NavigateAsync(connection.Host).ContinueWith(t =>
+                if (webHost is IWebViewSessionControl webCtrl)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
+                    _ = webCtrl.NavigateAsync(connection.Host).ContinueWith(t =>
                     {
-                        webSession.Status = t.IsFaulted ? "Failed" : "Connected";
-                        webSession.IsConnected = !t.IsFaulted;
+                        Application.Current?.Dispatcher?.Invoke(() =>
+                        {
+                            webSession.Status = t.IsFaulted ? "Failed" : "Connected";
+                            webSession.IsConnected = !t.IsFaulted;
+                        });
                     });
-                });
+                }
                 break;
 
             case ProtocolType.SSH:
@@ -308,13 +316,13 @@ public partial class MainViewModel : ObservableObject
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Failed to launch external VNC viewer: {ex.Message}", "VNC Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        ShowWarningMessage("VNC Error", $"Failed to launch external VNC viewer: {ex.Message}");
                     }
                     break;
                 }
 
                 // Built-in VNC Viewer (Embedded Tab)
-                var vncHost = new VncHostControl();
+                var vncHost = SessionControlFactory?.Invoke(connection) ?? new VncHostControl();
                 var vncSession = new SessionTabViewModel(connection, vncHost);
                 SetupTabCallbacks(vncSession);
 
@@ -322,38 +330,70 @@ public partial class MainViewModel : ObservableObject
                 SelectedSession = vncSession;
                 vncSession.Status = "Connecting";
 
-                vncHost.Connected += () =>
+                if (vncHost is IVncHostControl vncControl)
                 {
-                    Application.Current?.Dispatcher.Invoke(() =>
+                    vncControl.Connected += () =>
                     {
-                        vncSession.Status = "Connected";
-                        vncSession.IsConnected = true;
-                    });
-                };
-                vncHost.Disconnected += () =>
-                {
-                    Application.Current?.Dispatcher.Invoke(() =>
+                        var disp = Application.Current?.Dispatcher;
+                        if (disp != null && !disp.CheckAccess())
+                        {
+                            disp.Invoke(() =>
+                            {
+                                vncSession.Status = "Connected";
+                                vncSession.IsConnected = true;
+                            });
+                        }
+                        else
+                        {
+                            vncSession.Status = "Connected";
+                            vncSession.IsConnected = true;
+                        }
+                    };
+                    vncControl.Disconnected += () =>
                     {
-                        vncSession.Status = "Disconnected";
-                        vncSession.IsConnected = false;
-                    });
-                };
-                vncHost.Error += (err) =>
-                {
-                    Application.Current?.Dispatcher.Invoke(() =>
+                        var disp = Application.Current?.Dispatcher;
+                        if (disp != null && !disp.CheckAccess())
+                        {
+                            disp.Invoke(() =>
+                            {
+                                vncSession.Status = "Disconnected";
+                                vncSession.IsConnected = false;
+                            });
+                        }
+                        else
+                        {
+                            vncSession.Status = "Disconnected";
+                            vncSession.IsConnected = false;
+                        }
+                    };
+                    vncControl.Error += (err) =>
                     {
-                        vncSession.Status = $"Error: {err}";
-                    });
-                };
+                        var disp = Application.Current?.Dispatcher;
+                        if (disp != null && !disp.CheckAccess())
+                        {
+                            disp.Invoke(() =>
+                            {
+                                vncSession.Status = $"Error: {err}";
+                            });
+                        }
+                        else
+                        {
+                            vncSession.Status = $"Error: {err}";
+                        }
+                    };
+                }
 
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(300); // Give control time to attach
-                    Application.Current?.Dispatcher.Invoke(() =>
+                    Application.Current?.Dispatcher?.Invoke(() =>
                     {
                         try
                         {
-                            vncHost.Connect(connection.Host, connection.Port, decryptedPassword);
+                            if (vncHost is IVncHostControl vncCtrl)
+                            {
+                                vncCtrl.Connect(connection.Host, connection.Port, decryptedPassword);
+                            }
                             if (mode == DisplayMode.Fullscreen)
                             {
                                 RequestFullscreenWindow?.Invoke(vncSession);
@@ -369,16 +409,24 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private void SetupTabCallbacks(SessionTabViewModel session)
+    internal void SetupTabCallbacks(SessionTabViewModel session)
     {
-        if (session.Content is RdpHostControl rdpControl)
+        if (session.Content is IRdpHostControl rdpControl)
         {
             rdpControl.DisconnectRequested += () =>
             {
-                Application.Current?.Dispatcher.Invoke(() =>
+                var disp = Application.Current?.Dispatcher;
+                if (disp != null && !disp.CheckAccess())
+                {
+                    disp.Invoke(() =>
+                    {
+                        _ = session.CloseCommand.ExecuteAsync(null);
+                    });
+                }
+                else
                 {
                     _ = session.CloseCommand.ExecuteAsync(null);
-                });
+                }
             };
         }
 
@@ -394,11 +442,11 @@ public partial class MainViewModel : ObservableObject
             }
 
             LogEngine.Instance.Info("Session", $"Closing session tab '{s.Title}' ({s.Connection.Protocol}://{s.Connection.Host}:{s.Connection.Port})");
-            if (s.Content is RdpHostControl rdp)
+            if (s.Content is IRdpHostControl rdp)
             {
                 rdp.Disconnect();
             }
-            else if (s.Content is VncHostControl vnc)
+            else if (s.Content is IVncHostControl vnc)
             {
                 vnc.Disconnect();
                 vnc.Dispose();

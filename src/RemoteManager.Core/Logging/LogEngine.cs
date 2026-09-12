@@ -10,9 +10,8 @@ public sealed class LogEngine : ILogService, IAsyncDisposable, IDisposable
     private static readonly Lazy<LogEngine> _instance = new(() => new LogEngine());
     public static LogEngine Instance => _instance.Value;
 
-    private readonly string _logsDirectory;
+    private string _logsDirectory;
     private readonly Channel<LogEntry> _channel;
-    private readonly CancellationTokenSource _cts = new();
     private readonly Task _writerTask;
     private readonly object _bufferLock = new();
     private readonly LinkedList<LogEntry> _recentBuffer = new();
@@ -22,8 +21,9 @@ public sealed class LogEngine : ILogService, IAsyncDisposable, IDisposable
     private string? _currentDateString;
     private RemoteManager.Core.Models.AppSettings? _settings;
 
-    public string LogsDirectory => _logsDirectory;
+    public string LogsDirectory { get => _logsDirectory; internal set => _logsDirectory = value; }
     public RemoteManager.Core.Models.AppSettings? CurrentSettings => _settings;
+    internal static Func<string>? BaseLogsDirectoryResolver { get; set; }
 
     public event Action<LogEntry>? LogReceived;
 
@@ -89,7 +89,9 @@ public sealed class LogEngine : ILogService, IAsyncDisposable, IDisposable
         // Primary: App base directory / logs
         try
         {
-            var baseLogs = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+            var baseLogs = BaseLogsDirectoryResolver != null
+                ? BaseLogsDirectoryResolver()
+                : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
             Directory.CreateDirectory(baseLogs);
             // Quick test write check
             var testFile = Path.Combine(baseLogs, ".test_write");
@@ -294,11 +296,10 @@ public sealed class LogEngine : ILogService, IAsyncDisposable, IDisposable
     private async Task ProcessQueueAsync()
     {
         var reader = _channel.Reader;
-        var token = _cts.Token;
 
         try
         {
-            while (await reader.WaitToReadAsync(token))
+            while (await reader.WaitToReadAsync())
             {
                 while (reader.TryRead(out var entry))
                 {
@@ -310,22 +311,6 @@ public sealed class LogEngine : ILogService, IAsyncDisposable, IDisposable
                     await _currentWriter.FlushAsync();
                 }
             }
-        }
-        catch (OperationCanceledException)
-        {
-            // Process remaining items on shutdown
-            while (reader.TryRead(out var entry))
-            {
-                try
-                {
-                    await WriteToFileAsync(entry);
-                }
-                catch { }
-            }
-        }
-        catch
-        {
-            // Protect background thread
         }
         finally
         {
@@ -359,11 +344,10 @@ public sealed class LogEngine : ILogService, IAsyncDisposable, IDisposable
             try
             {
                 _currentWriter.Flush();
-                _currentWriter.Dispose();
             }
-            catch { }
             finally
             {
+                _currentWriter.Dispose();
                 _currentWriter = null;
                 _currentDateString = null;
             }
@@ -374,37 +358,21 @@ public sealed class LogEngine : ILogService, IAsyncDisposable, IDisposable
     {
         if (_currentWriter != null)
         {
-            try
-            {
-                await _currentWriter.FlushAsync();
-            }
-            catch { }
+            await _currentWriter.FlushAsync();
         }
     }
 
     public void Dispose()
     {
-        _cts.Cancel();
-        try
-        {
-            _writerTask.Wait(1000);
-        }
-        catch { }
-
+        _channel.Writer.TryComplete();
+        _writerTask.Wait(TimeSpan.FromSeconds(2));
         CloseCurrentWriter();
-        _cts.Dispose();
     }
 
     public async ValueTask DisposeAsync()
     {
-        _cts.Cancel();
-        try
-        {
-            await _writerTask.WaitAsync(TimeSpan.FromSeconds(1));
-        }
-        catch { }
-
+        _channel.Writer.TryComplete();
+        await _writerTask.WaitAsync(TimeSpan.FromSeconds(2));
         CloseCurrentWriter();
-        _cts.Dispose();
     }
 }

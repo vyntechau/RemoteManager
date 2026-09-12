@@ -496,8 +496,7 @@ public class SqliteDatabaseService : IDatabaseService
             {
                 try
                 {
-                    var settings = JsonSerializer.Deserialize<AppSettings>(json);
-                    if (settings != null)
+                    if (JsonSerializer.Deserialize<AppSettings>(json) is { } settings)
                     {
                         LogEngine.Instance.Debug("Database", "Application settings loaded successfully.");
                         return settings;

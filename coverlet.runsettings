@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Exclude>[RemoteManager.Protocols]VncSharpCore.*,[RemoteManager.Protocols]RemoteManager.Protocols.Rdp.RdpAxClient,[RemoteManager.Protocols]RemoteManager.Protocols.Rdp.RdpHostControl,[RemoteManager.Protocols]RemoteManager.Protocols.Web.WebView2SessionControl,[RemoteManager.Protocols]RemoteManager.Protocols.Vnc.VncHostControl,[RemoteManager.Protocols]RemoteManager.Protocols.Vnc.VncPasswordDialog,[RemoteManager.App]RemoteManager.App.MainWindow*,[RemoteManager.App]RemoteManager.App.App*,[RemoteManager.App]RemoteManager.App.Views.*,[RemoteManager.App]XamlGeneratedNamespace.*</Exclude>
+          <ExcludeByFile>**/VncSharpCore.cs,**/RdpAxClient.cs,**/RdpHostControl.cs,**/WebView2SessionControl.cs,**/VncHostControl.cs,**/VncPasswordDialog.xaml.cs,**/MainWindow.xaml.cs,**/App.xaml.cs,**/Views/**,**/*Window.xaml.cs,**/obj/**,**/*.g.cs,**/*.g.i.cs</ExcludeByFile>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

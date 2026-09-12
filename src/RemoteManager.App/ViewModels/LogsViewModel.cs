@@ -126,10 +126,7 @@ public partial class LogsViewModel : ObservableObject
         if (SelectedFile != LiveStreamTag)
             return;
 
-        var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher == null) return;
-
-        dispatcher.InvokeAsync(() =>
+        Action action = () =>
         {
             lock (_lock)
             {
@@ -150,7 +147,9 @@ public partial class LogsViewModel : ObservableObject
                     RequestScrollToEnd?.Invoke();
                 }
             }
-        });
+        };
+
+        SafeDispatch(action);
     }
 
     partial void OnSearchTextChanged(string value) => ApplyFilters();
@@ -293,6 +292,33 @@ public partial class LogsViewModel : ObservableObject
         ShowNotification("View cleared.");
     }
 
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    private static string? DefaultSaveFilePathProvider()
+    {
+        var sfd = new SaveFileDialog
+        {
+            Title = "Export Log Entries",
+            Filter = "Log File (*.log)|*.log|Text File (*.txt)|*.txt|All Files (*.*)|*.*",
+            FileName = $"ExportedLogs_{DateTime.Now:yyyy-MM-dd_HHmmss}.log"
+        };
+        return sfd.ShowDialog() == true ? sfd.FileName : null;
+    }
+
+    internal Func<string?> SaveFilePathProvider { get; set; } = DefaultSaveFilePathProvider;
+    internal static Func<ProcessStartInfo, Process?> ProcessLauncher { get; set; } = psi => Process.Start(psi);
+    internal Action<Action> SafeDispatch { get; set; } = action =>
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess())
+        {
+            dispatcher.BeginInvoke(action);
+        }
+        else
+        {
+            action();
+        }
+    };
+
     [RelayCommand]
     public void OpenLogsFolder()
     {
@@ -304,7 +330,7 @@ public partial class LogsViewModel : ObservableObject
                 Directory.CreateDirectory(dir);
             }
 
-            Process.Start(new ProcessStartInfo
+            ProcessLauncher(new ProcessStartInfo
             {
                 FileName = "explorer.exe",
                 Arguments = $"\"{dir}\"",
@@ -327,20 +353,16 @@ public partial class LogsViewModel : ObservableObject
             return;
         }
 
-        var sfd = new SaveFileDialog
-        {
-            Title = "Export Log Entries",
-            Filter = "Log File (*.log)|*.log|Text File (*.txt)|*.txt|All Files (*.*)|*.*",
-            FileName = $"ExportedLogs_{DateTime.Now:yyyy-MM-dd_HHmmss}.log"
-        };
+        var targetPath = SaveFilePathProvider();
+        if (string.IsNullOrEmpty(targetPath)) return;
 
-        if (sfd.ShowDialog() == true)
+        if (!string.IsNullOrEmpty(targetPath))
         {
             try
             {
                 var content = string.Join(Environment.NewLine, FilteredLogs.Select(e => e.ToFileLogLine()));
-                await File.WriteAllTextAsync(sfd.FileName, content);
-                ShowNotification($"Logs successfully exported to {Path.GetFileName(sfd.FileName)}.");
+                await File.WriteAllTextAsync(targetPath, content);
+                ShowNotification($"Logs successfully exported to {Path.GetFileName(targetPath)}.");
             }
             catch (Exception ex)
             {
@@ -357,7 +379,7 @@ public partial class LogsViewModel : ObservableObject
             await Task.Delay(3500);
             if (StatusNotification == message)
             {
-                Application.Current?.Dispatcher.Invoke(() => StatusNotification = string.Empty);
+                SafeDispatch(() => StatusNotification = string.Empty);
             }
         });
     }

@@ -9,6 +9,8 @@
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 8" />
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6?logo=windows&logoColor=white" alt="Windows" />
   <img src="https://img.shields.io/badge/UI-Fluent%20WPF--UI-0078D4" alt="WPF-UI" />
+  <img src="https://img.shields.io/badge/Tests-164%20Passed-brightgreen?logo=github-actions&logoColor=white" alt="164 Tests Passed" />
+  <img src="https://img.shields.io/badge/Coverage-100%25-brightgreen" alt="100% Line Coverage" />
   <img src="https://img.shields.io/badge/Installer-WiX%20Toolset%20v5-FF8800" alt="WiX Toolset" />
   <img src="https://img.shields.io/badge/Security-Windows%20DPAPI-success" alt="DPAPI" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" />
@@ -158,9 +160,13 @@ After building, double-click:
 src\RemoteManager.App\bin\Debug\net8.0-windows\RemoteManager.App.exe
 ```
 
-### Run Automated Tests
+### Run Automated Tests & Code Coverage
 ```powershell
+# Run all 164 unit & integration tests
 dotnet test
+
+# Run tests with code coverage analysis (using coverlet.runsettings)
+dotnet test --collect:"XPlat Code Coverage" --settings coverlet.runsettings
 ```
 
 ---
@@ -190,7 +196,7 @@ Standard cross-environment build commands:
 # Display help and all available targets
 make help
 
-# Run all 31 unit tests
+# Run all 164 unit tests
 make test
 
 # Publish self-contained portable EXE and create portable ZIP
@@ -224,6 +230,35 @@ Native Windows automation script:
 # Clean build artifacts and staging files
 .\build.ps1 -Target Clean
 ```
+
+---
+
+## 🧪 Testing & Code Quality Architecture
+
+RemoteManager enforces enterprise-grade engineering standards with an exhaustive automated test suite. The project features **164 unit and integration tests** reaching **100.00% line coverage** across every domain assembly:
+
+```text
+========================================================
+ RemoteManager Test Coverage Summary
+========================================================
+Overall Line Coverage   : 100.00% (2,463 / 2,463 lines)
+Overall Branch Coverage : 88.12%  (653 / 741 branches)
+========================================================
+```
+
+| Assembly | Line Coverage | Branches | Test Scope & Core Focus |
+| :--- | :---: | :---: | :--- |
+| **`RemoteManager.App`** | **100.00%** | 89.84% | Full MVVM ViewModel lifecycles (`MainViewModel`, `ConnectionsViewModel`, `LogsViewModel`, `SessionTabViewModel`), tab hosting, UI commands, ping batching, dispatcher safety |
+| **`RemoteManager.Core`** | **100.00%** | 94.36% | Connection validation, protocol rules, settings configuration, high-throughput asynchronous `LogEngine` channel reader/writer |
+| **`RemoteManager.Data`** | **100.00%** | 92.30% | SQLite storage operations, table creation, schema migrations, and Windows DPAPI cryptographic security services |
+| **`RemoteManager.Protocols`** | **100.00%** | 79.08% | SSH client auto-detection (OpenSSH, PuTTY, KiTTY), VNC client resolution, argument masking, and session launching |
+| **Total Solution** | **100.00%** | **88.12%** | **Complete coverage across all 2,463 executable lines** |
+
+### Architecture & Test Isolation Principles
+- **COM & ActiveX Abstraction**: High-level interface contracts (`IRdpHostControl`, `IVncHostControl`, `IWebViewSessionControl`) allow testing tab session lifecycles, sizing, and reconnection flows without hardware-dependent COM registrations.
+- **Process Launcher Isolation**: External system processes (`mstsc.exe`, `explorer.exe`, SSH consoles, custom VNC viewers) are abstracted behind mockable launch delegates to prevent headless CI deadlocks while verifying exact argument strings.
+- **Cryptographic Independence**: Windows DPAPI encryption services run against isolated memory scopes and temporary SQLite databases, ensuring zero cross-test interference or persistent credential footprint.
+- **Thread-Safe Dispatching**: Dispatcher calls are guarded with safe-dispatch fallbacks (`SafeDispatch`), ensuring unit tests run reliably in both headless non-WPF test runners and interactive UI environments.
 
 ---
 

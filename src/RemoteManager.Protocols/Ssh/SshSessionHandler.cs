@@ -7,6 +7,9 @@ namespace RemoteManager.Protocols.Ssh;
 
 public static class SshSessionHandler
 {
+    internal static Func<ProcessStartInfo, Process?> ProcessLauncher { get; set; } = psi => Process.Start(psi);
+    internal static string? WindowsTerminalPathOverride { get; set; }
+
     private static readonly char[] DisallowedChars = ['&', '|', ';', '`', '$', '<', '>', '"', '\'', '\r', '\n'];
 
     public static Process Launch(string host, int port, string? username, AppSettings? settings = null)
@@ -60,7 +63,7 @@ public static class SshSessionHandler
         }
 
         // Auto-detect default: Windows Terminal or fallback to cmd / ssh
-        var wtPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        var wtPath = WindowsTerminalPathOverride ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             @"Microsoft\WindowsApps\wt.exe");
 
         if (File.Exists(wtPath))
@@ -73,7 +76,7 @@ public static class SshSessionHandler
         return LaunchProcess("cmd.exe", $"/k ssh -p {sshPort} {userParam}");
     }
 
-    private static string FormatArguments(string template, string host, int port, string user)
+    internal static string FormatArguments(string template, string host, int port, string user)
     {
         return template
             .Replace("{host}", host, StringComparison.OrdinalIgnoreCase)
@@ -93,18 +96,11 @@ public static class SshSessionHandler
 
         try
         {
-            var proc = Process.Start(psi)
+            var proc = ProcessLauncher(psi)
                 ?? throw new InvalidOperationException($"Failed to start SSH client: {fileName}");
 
             proc.EnableRaisingEvents = true;
-            proc.Exited += (s, e) =>
-            {
-                try
-                {
-                    LogEngine.Instance.Info("Protocol.SSH", $"SSH client process '{fileName}' exited with code {proc.ExitCode}");
-                }
-                catch { }
-            };
+            proc.Exited += (s, e) => HandleProcessExit(fileName, proc.ExitCode);
 
             return proc;
         }
@@ -113,5 +109,10 @@ public static class SshSessionHandler
             LogEngine.Instance.Error("Protocol.SSH", $"Failed to execute SSH client '{fileName}'", ex);
             throw;
         }
+    }
+
+    internal static void HandleProcessExit(string fileName, int exitCode)
+    {
+        LogEngine.Instance.Info("Protocol.SSH", $"SSH client process '{fileName}' exited with code {exitCode}");
     }
 }

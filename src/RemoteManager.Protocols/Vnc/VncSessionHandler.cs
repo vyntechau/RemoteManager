@@ -10,7 +10,9 @@ namespace RemoteManager.Protocols.Vnc;
 
 public static class VncSessionHandler
 {
-    private static readonly (string Id, string DisplayName, string[] Paths, string DefaultArgs)[] KnownViewers =
+    internal static Func<ProcessStartInfo, Process?> ProcessLauncher { get; set; } = psi => Process.Start(psi);
+
+    internal static (string Id, string DisplayName, string[] Paths, string DefaultArgs)[] KnownViewers =
     [
         ("UltraVNC", "UltraVNC", [
             @"C:\Program Files\uvnc bvba\UltraVNC\vncviewer.exe",
@@ -117,7 +119,7 @@ public static class VncSessionHandler
                     .Replace("{password}", safePassword, StringComparison.OrdinalIgnoreCase);
 
                 LogEngine.Instance.Debug("Protocol.VNC", $"Starting custom VNC client: {customPath} (Args masked)");
-                return Process.Start(new ProcessStartInfo
+                return ProcessLauncher(new ProcessStartInfo
                 {
                     FileName = customPath,
                     Arguments = args,
@@ -133,7 +135,7 @@ public static class VncSessionHandler
                 if (foundPath != null)
                 {
                     LogEngine.Instance.Debug("Protocol.VNC", $"Starting {specific.DisplayName} at {foundPath} with target {address}");
-                    return Process.Start(new ProcessStartInfo
+                    return ProcessLauncher(new ProcessStartInfo
                     {
                         FileName = foundPath,
                         Arguments = address,
@@ -149,7 +151,7 @@ public static class VncSessionHandler
                 if (found != null)
                 {
                     LogEngine.Instance.Debug("Protocol.VNC", $"Auto-detected {displayName} at {found}. Launching for {address}");
-                    return Process.Start(new ProcessStartInfo
+                    return ProcessLauncher(new ProcessStartInfo
                     {
                         FileName = found,
                         Arguments = address,

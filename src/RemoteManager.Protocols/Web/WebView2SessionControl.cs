@@ -6,7 +6,7 @@ using RemoteManager.Core.Logging;
 
 namespace RemoteManager.Protocols.Web;
 
-public class WebView2SessionControl : ContentControl
+public class WebView2SessionControl : ContentControl, IWebViewSessionControl
 {
     private readonly WebView2 _webView;
     private readonly Guid _connectionId;

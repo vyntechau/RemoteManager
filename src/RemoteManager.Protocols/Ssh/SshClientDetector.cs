@@ -135,25 +135,19 @@ public static class SshClientDetector
         return list;
     }
 
-    private static string? FindOnPath(string exeName)
+    internal static string? FindOnPath(string exeName, string? pathEnv = null)
     {
-        var pathEnv = Environment.GetEnvironmentVariable("PATH");
+        pathEnv ??= Environment.GetEnvironmentVariable("PATH");
         if (string.IsNullOrEmpty(pathEnv)) return null;
 
         var paths = pathEnv.Split(Path.PathSeparator);
         foreach (var path in paths)
         {
-            try
+            if (string.IsNullOrWhiteSpace(path)) continue;
+            var fullPath = Path.Combine(path.Trim(), exeName);
+            if (File.Exists(fullPath))
             {
-                var fullPath = Path.Combine(path.Trim(), exeName);
-                if (File.Exists(fullPath))
-                {
-                    return fullPath;
-                }
-            }
-            catch
-            {
-                // ignore invalid path entries
+                return fullPath;
             }
         }
         return null;

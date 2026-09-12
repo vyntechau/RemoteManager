@@ -13,7 +13,7 @@ using RemoteManager.Core.Logging;
 
 namespace RemoteManager.Protocols.Vnc;
 
-public class VncHostControl : ContentControl, IDisposable
+public class VncHostControl : ContentControl, IVncHostControl, IDisposable
 {
     private readonly WindowsFormsHost _host;
     private readonly RemoteDesktop _remoteDesktop;

@@ -8,6 +8,9 @@ public class DpapiEncryptionService : IEncryptionService
 {
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("RemoteManager::Entropy::v1");
 
+    internal Func<byte[], byte[]?, DataProtectionScope, byte[]> ProtectFunc { get; set; } = ProtectedData.Protect;
+    internal Func<byte[], byte[]?, DataProtectionScope, byte[]> UnprotectFunc { get; set; } = ProtectedData.Unprotect;
+
     public string Encrypt(string plainText)
     {
         if (string.IsNullOrEmpty(plainText))
@@ -16,7 +19,7 @@ public class DpapiEncryptionService : IEncryptionService
         try
         {
             var plainBytes = Encoding.UTF8.GetBytes(plainText);
-            var encryptedBytes = ProtectedData.Protect(
+            var encryptedBytes = ProtectFunc(
                 plainBytes,
                 Entropy,
                 DataProtectionScope.CurrentUser);
@@ -37,7 +40,7 @@ public class DpapiEncryptionService : IEncryptionService
         try
         {
             var cipherBytes = Convert.FromBase64String(cipherText);
-            var decryptedBytes = ProtectedData.Unprotect(
+            var decryptedBytes = UnprotectFunc(
                 cipherBytes,
                 Entropy,
                 DataProtectionScope.CurrentUser);

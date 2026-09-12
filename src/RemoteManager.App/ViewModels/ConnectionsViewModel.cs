@@ -244,14 +244,7 @@ public partial class ConnectionsViewModel : ObservableObject
                 try
                 {
                     await card.PingAsync();
-                    if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == false)
-                    {
-                        await System.Windows.Application.Current.Dispatcher.InvokeAsync(UpdateMetrics);
-                    }
-                    else
-                    {
-                        UpdateMetrics();
-                    }
+                    SafeDispatch(UpdateMetrics);
                 }
                 finally
                 {
@@ -260,14 +253,7 @@ public partial class ConnectionsViewModel : ObservableObject
             });
 
             await Task.WhenAll(tasks);
-            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == false)
-            {
-                await System.Windows.Application.Current.Dispatcher.InvokeAsync(UpdateMetrics);
-            }
-            else
-            {
-                UpdateMetrics();
-            }
+            SafeDispatch(UpdateMetrics);
             LogEngine.Instance.Info("Network", "Batch ping test completed.");
         }
         finally
@@ -275,6 +261,21 @@ public partial class ConnectionsViewModel : ObservableObject
             IsPingingAll = false;
         }
     }
+
+    internal static Func<System.Windows.Threading.Dispatcher?> DispatcherProvider { get; set; } = () => System.Windows.Application.Current?.Dispatcher;
+
+    internal Action<Action> SafeDispatch { get; set; } = action =>
+    {
+        var disp = DispatcherProvider();
+        if (disp != null && !disp.CheckAccess())
+        {
+            _ = disp.BeginInvoke(action);
+        }
+        else
+        {
+            action();
+        }
+    };
 
     [RelayCommand]
     public async Task ConnectCardAsync(ConnectionCardViewModel? card)

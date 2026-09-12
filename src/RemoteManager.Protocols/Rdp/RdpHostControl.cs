@@ -10,7 +10,7 @@ using WpfOrientation = System.Windows.Controls.Orientation;
 
 namespace RemoteManager.Protocols.Rdp;
 
-public class RdpHostControl : ContentControl
+public class RdpHostControl : ContentControl, IRdpHostControl
 {
     private readonly WindowsFormsHost _host;
     private readonly RdpAxClient _rdpClient;
