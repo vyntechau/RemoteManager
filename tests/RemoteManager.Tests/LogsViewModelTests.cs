@@ -216,20 +216,25 @@ public class LogsViewModelTests
     [Fact]
     public void LogsViewModel_CopyLogs_AllFilteredLogs_CopiesToClipboard()
     {
-        var thread = new Thread(() =>
+        string? copied = null;
+        var prev = LogsViewModel.SetClipboardText;
+        try
         {
+            LogsViewModel.SetClipboardText = text => copied = text;
             var fake = CreateSeededLogService();
             var vm = new LogsViewModel(fake);
             vm.SelectedLog = null;
             Assert.NotEmpty(vm.FilteredLogs);
 
             vm.CopyLogs();
+            Assert.NotNull(copied);
             Assert.Contains("Copied", vm.StatusNotification);
             Assert.Contains("log lines to clipboard", vm.StatusNotification);
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
+        }
+        finally
+        {
+            LogsViewModel.SetClipboardText = prev;
+        }
     }
 
     [Fact]
@@ -276,18 +281,43 @@ public class LogsViewModelTests
     [Fact]
     public void LogsViewModel_CopyLogs_SingleSelectedLog_CopiesSelected()
     {
-        var thread = new Thread(() =>
+        string? copied = null;
+        var prev = LogsViewModel.SetClipboardText;
+        try
         {
+            LogsViewModel.SetClipboardText = text => copied = text;
             var fake = CreateSeededLogService();
             var vm = new LogsViewModel(fake);
             vm.SelectedLog = vm.FilteredLogs.First();
 
             vm.CopyLogs();
+            Assert.NotNull(copied);
             Assert.Equal("Copied selected log entry to clipboard.", vm.StatusNotification);
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
+        }
+        finally
+        {
+            LogsViewModel.SetClipboardText = prev;
+        }
+    }
+
+    [Fact]
+    public void LogsViewModel_CopyLogs_ClipboardException_ShowsErrorNotification()
+    {
+        var prev = LogsViewModel.SetClipboardText;
+        try
+        {
+            LogsViewModel.SetClipboardText = _ => throw new InvalidOperationException("Clipboard locked");
+            var fake = CreateSeededLogService();
+            var vm = new LogsViewModel(fake);
+            vm.SelectedLog = vm.FilteredLogs.First();
+
+            vm.CopyLogs();
+            Assert.Equal("Failed to copy logs to clipboard.", vm.StatusNotification);
+        }
+        finally
+        {
+            LogsViewModel.SetClipboardText = prev;
+        }
     }
 
     [Fact]

@@ -55,7 +55,7 @@ public class ConnectionPageTests
         });
         thread.SetApartmentState(System.Threading.ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "STA thread timed out");
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public class ConnectionPageTests
         });
         thread.SetApartmentState(System.Threading.ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "STA thread timed out");
     }
 
     [Fact]

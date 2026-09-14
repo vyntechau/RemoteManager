@@ -390,34 +390,43 @@ public class ConnectionsViewModelTests : IDisposable
     [Fact]
     public void ConnectionsViewModel_CopyAddress_WithCard_CopiesToClipboard()
     {
-        var thread = new Thread(() =>
+        string? copied = null;
+        var prev = ConnectionsViewModel.SetClipboardText;
+        try
         {
+            ConnectionsViewModel.SetClipboardText = text => copied = text;
             var item = new ConnectionItem { Name = "Clipboard Host", Host = "10.0.0.99", Port = 3389 };
             var card = new ConnectionCardViewModel(item);
 
             _vm.CopyAddress(null); // null safety
+            Assert.Null(copied);
+
             _vm.CopyAddress(card);
-            Assert.Equal("10.0.0.99:3389", Clipboard.GetText());
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
+            Assert.Equal("10.0.0.99:3389", copied);
+        }
+        finally
+        {
+            ConnectionsViewModel.SetClipboardText = prev;
+        }
     }
 
     [Fact]
     public void ConnectionsViewModel_CopyAddress_NonStaThread_CatchesException()
     {
-        var thread = new Thread(() =>
+        var prev = ConnectionsViewModel.SetClipboardText;
+        try
         {
+            ConnectionsViewModel.SetClipboardText = _ => throw new ThreadStateException("MTA not supported");
             var item = new ConnectionItem { Name = "Clipboard Host", Host = "10.0.0.99", Port = 3389 };
             var card = new ConnectionCardViewModel(item);
 
-            // On MTA thread, Clipboard.SetText throws ThreadStateException which should be caught cleanly
+            // On thread exception, CopyAddress catches exception cleanly without throwing
             _vm.CopyAddress(card);
-        });
-        thread.SetApartmentState(ApartmentState.MTA);
-        thread.Start();
-        thread.Join();
+        }
+        finally
+        {
+            ConnectionsViewModel.SetClipboardText = prev;
+        }
     }
 
     [Fact]

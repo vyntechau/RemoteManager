@@ -124,7 +124,7 @@ public class SshDetectorTests
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "STA thread timed out");
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public class SshDetectorTests
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "STA thread timed out");
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public class SshDetectorTests
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "STA thread timed out");
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class SshDetectorTests
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "STA thread timed out");
     }
 
     [Fact]
@@ -210,7 +210,7 @@ public class SshDetectorTests
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "STA thread timed out");
     }
 
     [Fact]
@@ -243,7 +243,7 @@ public class SshDetectorTests
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "STA thread timed out");
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public class SshDetectorTests
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "STA thread timed out");
     }
 
     [Theory]

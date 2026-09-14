@@ -259,25 +259,35 @@ public partial class LogsViewModel : ObservableObject
         }
     }
 
+    public static Action<string> SetClipboardText { get; set; } = text => Clipboard.SetText(text);
+
     [RelayCommand]
     public void CopyLogs()
     {
-        if (SelectedLog != null)
+        try
         {
-            Clipboard.SetText(SelectedLog.ToFileLogLine());
-            ShowNotification("Copied selected log entry to clipboard.");
-            return;
-        }
+            if (SelectedLog != null)
+            {
+                SetClipboardText(SelectedLog.ToFileLogLine());
+                ShowNotification("Copied selected log entry to clipboard.");
+                return;
+            }
 
-        if (FilteredLogs.Count == 0)
+            if (FilteredLogs.Count == 0)
+            {
+                ShowNotification("No logs available to copy.");
+                return;
+            }
+
+            var lines = string.Join(Environment.NewLine, FilteredLogs.Select(e => e.ToFileLogLine()));
+            SetClipboardText(lines);
+            ShowNotification($"Copied {FilteredLogs.Count} log lines to clipboard.");
+        }
+        catch (Exception ex)
         {
-            ShowNotification("No logs available to copy.");
-            return;
+            LogEngine.Instance.Error("UI", "Failed to copy logs to clipboard", ex);
+            ShowNotification("Failed to copy logs to clipboard.");
         }
-
-        var lines = string.Join(Environment.NewLine, FilteredLogs.Select(e => e.ToFileLogLine()));
-        Clipboard.SetText(lines);
-        ShowNotification($"Copied {FilteredLogs.Count} log lines to clipboard.");
     }
 
     [RelayCommand]

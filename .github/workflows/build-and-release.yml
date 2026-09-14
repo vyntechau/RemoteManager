@@ -32,15 +32,64 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build, Test & Package (Windows)
+  # ============================================================================
+  # JOB 1: RUN UNIT TESTS
+  # Fast feedback on pull requests and pushes, with strict timeout to prevent hangs.
+  # ============================================================================
+  test:
+    name: Run Unit Tests
     runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Execute Automated Tests
+        shell: pwsh
+        run: |
+          dotnet test tests/RemoteManager.Tests/RemoteManager.Tests.csproj --configuration Release --nologo --verbosity normal
+
+  # ============================================================================
+  # JOB 2: BUILD & PACKAGE (PORTABLE ZIP & MSI INSTALLER)
+  # Runs after tests pass to generate release packages and upload build artifacts.
+  # ============================================================================
+  package:
+    name: Build & Package (Portable ZIP & MSI)
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.versioning.outputs.version }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -80,10 +129,10 @@ jobs:
           dotnet tool restore
           dotnet wix extension add -g WixToolset.UI.wixext/5.0.2
 
-      - name: Run Tests & Build Packages (Portable ZIP & MSI)
+      - name: Build Packages (Portable ZIP & MSI)
         shell: pwsh
         run: |
-          .\build.ps1 -Target All -Version "${{ env.BUILD_VERSION }}" -OutputDir artifacts
+          .\build.ps1 -Target Package -SkipTests -Version "${{ env.BUILD_VERSION }}" -OutputDir artifacts
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -96,17 +145,39 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # ============================================================================
+  # JOB 3: PUBLISH GITHUB RELEASE
+  # Triggers only on version tags (e.g. v1.0.0) or explicit workflow_dispatch release.
+  # ============================================================================
+  release:
+    name: Publish GitHub Release
+    needs: [test, package]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == true
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: RemoteManager-v${{ needs.package.outputs.version }}-windows
+          path: release-artifacts
+
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name || format('v{0}', env.BUILD_VERSION) }}
-          name: Vyntech Remote Manager v${{ env.BUILD_VERSION }}
+          tag_name: ${{ github.ref_name || format('v{0}', needs.package.outputs.version) }}
+          name: Vyntech Remote Manager v${{ needs.package.outputs.version }}
           prerelease: ${{ github.event.inputs.is_prerelease == true }}
           generate_release_notes: true
           files: |
-            artifacts/RemoteManager-*.zip
-            artifacts/RemoteManager-*.msi
-            artifacts/checksums.txt
+            release-artifacts/RemoteManager-*.zip
+            release-artifacts/RemoteManager-*.msi
+            release-artifacts/checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

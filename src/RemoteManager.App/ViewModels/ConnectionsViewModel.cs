@@ -374,6 +374,8 @@ public partial class ConnectionsViewModel : ObservableObject
         }
     }
 
+    public static Action<string> SetClipboardText { get; set; } = text => Clipboard.SetText(text);
+
     [RelayCommand]
     public void CopyAddress(ConnectionCardViewModel? card)
     {
@@ -381,7 +383,7 @@ public partial class ConnectionsViewModel : ObservableObject
         {
             try
             {
-                Clipboard.SetText(card.FullAddress);
+                SetClipboardText(card.FullAddress);
                 LogEngine.Instance.Debug("UI", $"Copied address '{card.FullAddress}' to clipboard.");
             }
             catch (Exception ex)

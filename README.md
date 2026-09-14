@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 8" />
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6?logo=windows&logoColor=white" alt="Windows" />
   <img src="https://img.shields.io/badge/UI-Fluent%20WPF--UI-0078D4" alt="WPF-UI" />
-  <img src="https://img.shields.io/badge/Tests-164%20Passed-brightgreen?logo=github-actions&logoColor=white" alt="164 Tests Passed" />
+  <img src="https://img.shields.io/badge/Tests-171%20Passed-brightgreen?logo=github-actions&logoColor=white" alt="171 Tests Passed" />
   <img src="https://img.shields.io/badge/Coverage-100%25-brightgreen" alt="100% Line Coverage" />
   <img src="https://img.shields.io/badge/Installer-WiX%20Toolset%20v5-FF8800" alt="WiX Toolset" />
   <img src="https://img.shields.io/badge/Security-Windows%20DPAPI-success" alt="DPAPI" />
@@ -54,7 +54,7 @@ Because Credential Manager only stores **a single credential per target key**, c
 
 | Protocol | Engine | Capabilities |
 | :--- | :--- | :--- |
-| **RDP** | Native ActiveX (`AxMsRdpClient`) + Isolated Launcher | Full credentials injection, SmartSizing, audio redirection, clipboard sharing, multi-monitor |
+| **RDP** | Native ActiveX (`AxMsRdpClient`) + Isolated Launcher | Full credentials injection, SmartSizing, audio redirection, clipboard sharing, multi-monitor, **active disconnect detection** (session takeover notice & 1-click reconnect) |
 | **SSH** | Windows Terminal (`wt.exe`) / OpenSSH | Automatic terminal console launch with sanitized user and port parameters |
 | **VNC** | Built-in RFB Viewer + External Viewer Bridge | Embedded tabbed viewer or external bridge (UltraVNC, TightVNC, TigerVNC, RealVNC) |
 | **Web** | Microsoft WebView2 (Chromium) | **Isolated profile per connection** — cookies, sessions, and storage never leak between accounts |
@@ -162,7 +162,7 @@ src\RemoteManager.App\bin\Debug\net8.0-windows\RemoteManager.App.exe
 
 ### Run Automated Tests & Code Coverage
 ```powershell
-# Run all 164 unit & integration tests
+# Run all 171 unit & integration tests
 dotnet test
 
 # Run tests with code coverage analysis (using coverlet.runsettings)
@@ -196,7 +196,7 @@ Standard cross-environment build commands:
 # Display help and all available targets
 make help
 
-# Run all 164 unit tests
+# Run all 171 unit tests
 make test
 
 # Publish self-contained portable EXE and create portable ZIP
@@ -235,7 +235,7 @@ Native Windows automation script:
 
 ## 🧪 Testing & Code Quality Architecture
 
-RemoteManager enforces enterprise-grade engineering standards with an exhaustive automated test suite. The project features **164 unit and integration tests** reaching **100.00% line coverage** across every domain assembly:
+RemoteManager enforces enterprise-grade engineering standards with an exhaustive automated test suite. The project features **171 unit and integration tests** reaching **100.00% line coverage** across every domain assembly:
 
 ```text
 ========================================================
@@ -264,22 +264,24 @@ Overall Branch Coverage : 88.12%  (653 / 741 branches)
 
 ## 🤖 Continuous Integration & Automated Releases (GitHub Actions)
 
-An automated production CI/CD workflow is included in [`.github/workflows/build-and-release.yml`](.github/workflows/build-and-release.yml):
+An automated production CI/CD workflow is included in [`.github/workflows/build-and-release.yml`](.github/workflows/build-and-release.yml), running on Node.js 24 with isolated, modular jobs and strict timeouts:
 
-- **Pull Requests & Pushes to `main`**:
-  - Restores NuGet dependencies and WiX v5 toolset
-  - Runs all unit tests (`dotnet test`)
+- **Job 1: `test` (Unit & Integration Tests)**:
+  - Runs on Windows latest with Node.js 24 and .NET 8.0 SDK
+  - Executes all 171 automated unit tests (`dotnet test`) with a 15-minute strict timeout to prevent hangs
+  - Delivers fast feedback on all pull requests and pushes to `main`
+
+- **Job 2: `package` (Build & Package Artifacts)**:
+  - Runs automatically after `test` succeeds
+  - Restores tools and WiX Toolset v5 UI extensions
   - Compiles and publishes self-contained win-x64 binaries
   - Creates portable ZIP, compiles the MSI installer, and generates SHA-256 checksums
-  - Uploads artifacts directly to the workflow run (accessible via the **Actions** tab on GitHub)
+  - Uploads artifacts directly to the workflow run
 
-- **Publishing a Release**:
-  - Pushing a version tag automatically generates and publishes a GitHub Release with the MSI installer, portable ZIP, checksums, and auto-generated release notes:
-    ```bash
-    git tag v1.0.0
-    git push origin v1.0.0
-    ```
-  - Manual trigger is also available via **Run workflow** on the GitHub Actions tab (`workflow_dispatch`), allowing you to override version numbers and publish releases on demand.
+- **Job 3: `release` (Publish GitHub Release)**:
+  - Runs automatically on version tags (`v*`) or manual `workflow_dispatch` trigger
+  - Downloads build artifacts from `package` job
+  - Generates release notes and publishes the GitHub Release with portable ZIP, MSI installer, and checksums
 
 ## 🤝 Contributing & Community
 
