@@ -413,6 +413,48 @@ public partial class MainViewModel : ObservableObject
     {
         if (session.Content is IRdpHostControl rdpControl)
         {
+            rdpControl.Connected += () =>
+            {
+                var disp = Application.Current?.Dispatcher;
+                if (disp != null && !disp.CheckAccess())
+                {
+                    disp.Invoke(() =>
+                    {
+                        session.Status = "Connected";
+                        session.IsConnected = true;
+                    });
+                }
+                else
+                {
+                    session.Status = "Connected";
+                    session.IsConnected = true;
+                }
+            };
+
+            rdpControl.Disconnected += (desc, discReason, extReason) =>
+            {
+                var disp = Application.Current?.Dispatcher;
+                string status = extReason == 5
+                    ? "Disconnected (Another user connected)"
+                    : "Disconnected";
+
+                if (disp != null && !disp.CheckAccess())
+                {
+                    disp.Invoke(() =>
+                    {
+                        session.Status = status;
+                        session.IsConnected = false;
+                    });
+                }
+                else
+                {
+                    session.Status = status;
+                    session.IsConnected = false;
+                }
+
+                LogEngine.Instance.Warn("Session", $"RDP session '{session.Title}' disconnected (Reason: {discReason}, Extended: {extReason}): {desc}");
+            };
+
             rdpControl.DisconnectRequested += () =>
             {
                 var disp = Application.Current?.Dispatcher;
@@ -432,8 +474,10 @@ public partial class MainViewModel : ObservableObject
 
         session.OnCloseRequested = async (s) =>
         {
-            // Show simple confirmation before disconnecting
-            if (RequestConfirmationAsync != null)
+            bool isDisconnected = s.Status.StartsWith("Disconnected", StringComparison.OrdinalIgnoreCase);
+
+            // Do not show confirmation modal when disconnected or for utility tabs
+            if (!isDisconnected && !s.IsUtilityTab && RequestConfirmationAsync != null)
             {
                 var confirmed = await RequestConfirmationAsync.Invoke(
                     "Close Connection",

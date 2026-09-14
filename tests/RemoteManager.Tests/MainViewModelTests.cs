@@ -608,10 +608,15 @@ public class MainViewModelTests : IDisposable
     private class FakeRdpControl : RemoteManager.Protocols.Rdp.IRdpHostControl
     {
         public event Action? DisconnectRequested;
+        public event Action<string, int, int>? Disconnected;
+        public event Action? Connected;
+
         public bool DisconnectCalled { get; set; }
         public void Connect(string server, int port, string? username, string? domain, string? password, int width = 1920, int height = 1080) { }
         public void Disconnect() => DisconnectCalled = true;
         public void RaiseDisconnectRequested() => DisconnectRequested?.Invoke();
+        public void RaiseConnected() => Connected?.Invoke();
+        public void RaiseDisconnected(string description, int discReason, int extReason) => Disconnected?.Invoke(description, discReason, extReason);
     }
 
     private class FakeWebControl : RemoteManager.Protocols.Web.IWebViewSessionControl
@@ -657,10 +662,25 @@ public class MainViewModelTests : IDisposable
         var webConn = new ConnectionItem { Name = "Web Mock", Host = "https://10.0.0.2", Protocol = ProtocolType.Web };
         var vncConn = new ConnectionItem { Name = "VNC Mock", Host = "10.0.0.3", Protocol = ProtocolType.VNC };
 
-        // 1. RDP connection and DisconnectRequested event
+        // 1. RDP connection, events, and DisconnectRequested
         await _mainVm.ConnectTabbedAsync(rdpConn);
         var rdpSession = _mainVm.ActiveSessions.FirstOrDefault(s => s.Connection.Id == rdpConn.Id);
         Assert.NotNull(rdpSession);
+
+        fakeRdp.RaiseConnected();
+        Assert.Equal("Connected", rdpSession.Status);
+        Assert.True(rdpSession.IsConnected);
+
+        // When another user connects (extended reason 5)
+        fakeRdp.RaiseDisconnected("Another user connected to the remote computer", 2, 5);
+        Assert.Equal("Disconnected (Another user connected)", rdpSession.Status);
+        Assert.False(rdpSession.IsConnected);
+
+        // General disconnect
+        fakeRdp.RaiseDisconnected("Server closed connection", 3, 0);
+        Assert.Equal("Disconnected", rdpSession.Status);
+        Assert.False(rdpSession.IsConnected);
+
         fakeRdp.RaiseDisconnectRequested();
         // Closing tab should call Disconnect()
         _mainVm.RequestConfirmationAsync = (t, m) => Task.FromResult(true);
@@ -739,6 +759,135 @@ public class MainViewModelTests : IDisposable
 
         await _mainVm.EditConnectionAsync(12345);
         Assert.Null(pageOpened);
+    }
+
+    [Fact]
+    public void RdpAxClient_FormatDisconnectReason_ReturnsMeaningfulDescriptions()
+    {
+        // When another user connects (extended reason 5)
+        var msgOtherUser = RemoteManager.Protocols.Rdp.RdpAxClient.FormatDisconnectReason(2, 5);
+        Assert.Contains("another user connected", msgOtherUser, StringComparison.OrdinalIgnoreCase);
+
+        // When user was logged off (extended reason 2)
+        var msgLogoff = RemoteManager.Protocols.Rdp.RdpAxClient.FormatDisconnectReason(2, 2);
+        Assert.Contains("logged off", msgLogoff, StringComparison.OrdinalIgnoreCase);
+
+        // Server terminated (discReason 3)
+        var msgServer = RemoteManager.Protocols.Rdp.RdpAxClient.FormatDisconnectReason(3, 0);
+        Assert.Contains("terminated by the remote server", msgServer, StringComparison.OrdinalIgnoreCase);
+
+        // DNS lookup failed (discReason 260)
+        var msgDns = RemoteManager.Protocols.Rdp.RdpAxClient.FormatDisconnectReason(260, 0);
+        Assert.Contains("resolve", msgDns, StringComparison.OrdinalIgnoreCase);
+
+        // Timeout (discReason 264)
+        var msgTimeout = RemoteManager.Protocols.Rdp.RdpAxClient.FormatDisconnectReason(264, 0);
+        Assert.Contains("timed out", msgTimeout, StringComparison.OrdinalIgnoreCase);
+
+        // Socket closed (discReason 2308)
+        var msgSocket = RemoteManager.Protocols.Rdp.RdpAxClient.FormatDisconnectReason(2308, 0);
+        Assert.Contains("lost", msgSocket, StringComparison.OrdinalIgnoreCase);
+
+        // Low on memory (extended reason 6)
+        var msgMemory = RemoteManager.Protocols.Rdp.RdpAxClient.FormatDisconnectReason(1, 6);
+        Assert.Contains("memory", msgMemory, StringComparison.OrdinalIgnoreCase);
+
+        // License issue (extended reason 260)
+        var msgLicense = RemoteManager.Protocols.Rdp.RdpAxClient.FormatDisconnectReason(1, 260);
+        Assert.Contains("license", msgLicense, StringComparison.OrdinalIgnoreCase);
+
+        // Fallback
+        var msgGeneric = RemoteManager.Protocols.Rdp.RdpAxClient.FormatDisconnectReason(999, 888);
+        Assert.Contains("999", msgGeneric);
+        Assert.Contains("888", msgGeneric);
+    }
+
+    [Fact]
+    public async Task MainViewModel_RdpDisconnect_AnotherUserConnected_UpdatesStatusAndState()
+    {
+        await _db.InitializeAsync();
+        var fakeRdp = new FakeRdpControl();
+        _mainVm.SessionControlFactory = _ => fakeRdp;
+
+        var rdpConn = new ConnectionItem { Name = "Win11 Workstation", Host = "192.168.1.100", Protocol = ProtocolType.RDP };
+        await _mainVm.ConnectTabbedAsync(rdpConn);
+
+        var session = _mainVm.ActiveSessions.FirstOrDefault(s => s.Connection.Id == rdpConn.Id);
+        Assert.NotNull(session);
+
+        fakeRdp.RaiseConnected();
+        Assert.Equal("Connected", session.Status);
+        Assert.True(session.IsConnected);
+
+        // Another user logs in to the machine
+        fakeRdp.RaiseDisconnected("You have been disconnected because another connection was made to the remote computer.", 2, 5);
+
+        Assert.Equal("Disconnected (Another user connected)", session.Status);
+        Assert.False(session.IsConnected);
+    }
+
+    [Fact]
+    public async Task MainViewModel_CloseTab_WhenDisconnected_DoesNotAskConfirmation()
+    {
+        await _db.InitializeAsync();
+        var fakeRdp = new FakeRdpControl();
+        _mainVm.SessionControlFactory = _ => fakeRdp;
+
+        var rdpConn = new ConnectionItem { Name = "Win11 Disconnected Close", Host = "192.168.1.101", Protocol = ProtocolType.RDP };
+        await _mainVm.ConnectTabbedAsync(rdpConn);
+
+        var session = _mainVm.ActiveSessions.FirstOrDefault(s => s.Connection.Id == rdpConn.Id);
+        Assert.NotNull(session);
+
+        // Disconnect the session
+        fakeRdp.RaiseDisconnected("Disconnected by server", 3, 5);
+        Assert.False(session.IsConnected);
+
+        bool confirmationPrompted = false;
+        _mainVm.RequestConfirmationAsync = (t, m) =>
+        {
+            confirmationPrompted = true;
+            return Task.FromResult(false); // Even if it would return false, it shouldn't be asked
+        };
+
+        // Close the tab
+        await session.CloseCommand.ExecuteAsync(null);
+
+        // Confirmation modal should NOT have been prompted
+        Assert.False(confirmationPrompted);
+        // And session should be removed
+        Assert.DoesNotContain(session, _mainVm.ActiveSessions);
+    }
+
+    [Fact]
+    public async Task MainViewModel_CloseTab_WhenConnected_AsksConfirmation()
+    {
+        await _db.InitializeAsync();
+        var fakeRdp = new FakeRdpControl();
+        _mainVm.SessionControlFactory = _ => fakeRdp;
+
+        var rdpConn = new ConnectionItem { Name = "Win11 Connected Close", Host = "192.168.1.102", Protocol = ProtocolType.RDP };
+        await _mainVm.ConnectTabbedAsync(rdpConn);
+
+        var session = _mainVm.ActiveSessions.FirstOrDefault(s => s.Connection.Id == rdpConn.Id);
+        Assert.NotNull(session);
+
+        fakeRdp.RaiseConnected();
+        Assert.True(session.IsConnected);
+
+        bool confirmationPrompted = false;
+        _mainVm.RequestConfirmationAsync = (t, m) =>
+        {
+            confirmationPrompted = true;
+            return Task.FromResult(false); // User cancels confirmation
+        };
+
+        // Attempt to close tab
+        await session.CloseCommand.ExecuteAsync(null);
+
+        // Confirmation was prompted, and user cancelled, so session remains active
+        Assert.True(confirmationPrompted);
+        Assert.Contains(session, _mainVm.ActiveSessions);
     }
 }
 
