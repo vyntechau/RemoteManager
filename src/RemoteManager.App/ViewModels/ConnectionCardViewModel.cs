@@ -117,22 +117,18 @@ public partial class ConnectionCardViewModel : ObservableObject
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             using var client = new TcpClient();
             
-            var connectTask = client.ConnectAsync(Model.Host, Model.Port);
-            var completed = await Task.WhenAny(connectTask, Task.Delay(2500, cts.Token));
+            await client.ConnectAsync(Model.Host, Model.Port, cts.Token);
 
-            if (completed == connectTask && client.Connected)
-            {
-                sw.Stop();
-                LatencyMs = Math.Max(1, (int)sw.ElapsedMilliseconds);
-                PingStatus = ConnectionPingStatus.Online;
-                LogEngine.Instance.Debug("Network", $"Ping to {Model.Host}:{Model.Port} succeeded in {LatencyMs}ms");
-            }
-            else
-            {
-                sw.Stop();
-                PingStatus = ConnectionPingStatus.Offline;
-                LogEngine.Instance.Debug("Network", $"Ping to {Model.Host}:{Model.Port} timed out or failed");
-            }
+            sw.Stop();
+            LatencyMs = Math.Max(1, (int)sw.ElapsedMilliseconds);
+            PingStatus = ConnectionPingStatus.Online;
+            LogEngine.Instance.Debug("Network", $"Ping to {Model.Host}:{Model.Port} succeeded in {LatencyMs}ms");
+        }
+        catch (OperationCanceledException)
+        {
+            sw.Stop();
+            PingStatus = ConnectionPingStatus.Offline;
+            LogEngine.Instance.Debug("Network", $"Ping to {Model.Host}:{Model.Port} timed out");
         }
         catch (Exception ex)
         {

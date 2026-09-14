@@ -485,6 +485,73 @@
                     </StackPanel>
                 </StackPanel>
             </Border>
+
+            <!-- SECTION 6: APPLICATION UPDATES -->
+            <TextBlock Text="Updates &amp; Releases" FontSize="16" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="18,16" Margin="0,0,0,24">
+                <StackPanel>
+                    <!-- Auto-Check for Updates Toggle -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="Check for updates automatically" FontWeight="SemiBold" FontSize="14"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="Periodically check GitHub Releases on application startup and show notification status"
+                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" x:Name="AutoCheckUpdatesCheckBox" VerticalAlignment="Center"
+                                  Checked="OnUpdateSettingToggled" Unchecked="OnUpdateSettingToggled"/>
+                    </Grid>
+
+                    <Separator Background="{DynamicResource ControlElevationBorderBrush}" Margin="0,0,0,16"/>
+
+                    <!-- Pre-releases Toggle -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="Include Pre-release versions" FontWeight="SemiBold" FontSize="14"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="Receive early preview and beta builds before official stable release"
+                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" x:Name="IncludePrereleasesCheckBox" VerticalAlignment="Center"
+                                  Checked="OnUpdateSettingToggled" Unchecked="OnUpdateSettingToggled"/>
+                    </Grid>
+
+                    <Separator Background="{DynamicResource ControlElevationBorderBrush}" Margin="0,0,0,16"/>
+
+                    <!-- Manual Check Button & Info -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="GitHub Release Channel" FontWeight="SemiBold" FontSize="14"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock x:Name="LastUpdateCheckTextBlock" Text="Repository: vyntechau/RemoteManager"
+                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <ui:Button Grid.Column="1" Content="Check Now" Click="OnCheckUpdatesClick"
+                                   Appearance="Secondary" Height="32" Padding="14,0" VerticalAlignment="Center">
+                            <ui:Button.Icon>
+                                <ui:SymbolIcon Symbol="ArrowSync24"/>
+                            </ui:Button.Icon>
+                        </ui:Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

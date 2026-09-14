@@ -29,4 +29,9 @@ public class AppSettings
     public bool LogVnc { get; set; } = true;
     public bool LogWeb { get; set; } = true;
     public bool LogSecurity { get; set; } = true;
+
+    // Update Configuration
+    public bool AutoCheckForUpdates { get; set; } = true;
+    public bool CheckPrereleases { get; set; } = false;
+    public DateTime? LastUpdateCheckTime { get; set; }
 }

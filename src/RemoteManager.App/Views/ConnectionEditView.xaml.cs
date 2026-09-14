@@ -419,20 +419,16 @@ public partial class ConnectionEditView : UserControl
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             using var client = new TcpClient();
-            var connectTask = client.ConnectAsync(host, port);
-            var completed = await Task.WhenAny(connectTask, Task.Delay(2500, cts.Token));
+            await client.ConnectAsync(host, port, cts.Token);
 
-            if (completed == connectTask && client.Connected)
-            {
-                sw.Stop();
-                var ms = Math.Max(1, (int)sw.ElapsedMilliseconds);
-                if (PreviewPingText != null) PreviewPingText.Text = $"Online ({ms} ms)";
-                LogEngine.Instance.Info("Network", $"Test connectivity to {host}:{port} succeeded in {ms}ms");
-            }
-            else
-            {
-                if (PreviewPingText != null) PreviewPingText.Text = "Unreachable";
-            }
+            sw.Stop();
+            var ms = Math.Max(1, (int)sw.ElapsedMilliseconds);
+            if (PreviewPingText != null) PreviewPingText.Text = $"Online ({ms} ms)";
+            LogEngine.Instance.Info("Network", $"Test connectivity to {host}:{port} succeeded in {ms}ms");
+        }
+        catch (OperationCanceledException)
+        {
+            if (PreviewPingText != null) PreviewPingText.Text = "Unreachable (Timeout)";
         }
         catch
         {

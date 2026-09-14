@@ -1,10 +1,13 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RemoteManager.Core.Interfaces;
 using RemoteManager.Core.Logging;
 using RemoteManager.Core.Models;
+using RemoteManager.Core.Services;
 using RemoteManager.Protocols.Rdp;
 using RemoteManager.Protocols.Ssh;
 using RemoteManager.Protocols.Vnc;
@@ -16,6 +19,44 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly IDatabaseService _databaseService;
     private readonly IEncryptionService _encryptionService;
+    private readonly IUpdateService _updateService;
+
+    public IUpdateService UpdateService => _updateService;
+
+    // Update state observables
+    [ObservableProperty]
+    private bool _isCheckingForUpdates;
+
+    [ObservableProperty]
+    private bool _isUpdateAvailable;
+
+    [ObservableProperty]
+    private UpdateReleaseInfo? _latestRelease;
+
+    [ObservableProperty]
+    private string _updateStatusTitle = "Up to date";
+
+    [ObservableProperty]
+    private string _updateStatusSubtitle = "RemoteManager is running the latest available version.";
+
+    [ObservableProperty]
+    private string _footerUpdateStatusText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isDownloadingUpdate;
+
+    [ObservableProperty]
+    private double _updateDownloadProgress;
+
+    [ObservableProperty]
+    private string _updateDownloadProgressPercentage = "0%";
+
+    [ObservableProperty]
+    private bool _hasPortableZip;
+
+    public string CurrentAppVersion => _updateService.CurrentVersion;
+
+    public Action? RequestNavigateToAbout { get; set; }
 
     [ObservableProperty]
     private ObservableCollection<ConnectionItem> _connections = [];
@@ -82,11 +123,16 @@ public partial class MainViewModel : ObservableObject
 
     public ConnectionsViewModel ConnectionsVM { get; }
 
-    public MainViewModel(IDatabaseService databaseService, IEncryptionService encryptionService)
+    public MainViewModel(IDatabaseService databaseService, IEncryptionService encryptionService, IUpdateService? updateService = null)
     {
         _databaseService = databaseService;
         _encryptionService = encryptionService;
+        _updateService = updateService ?? new GitHubUpdateService();
         ConnectionsVM = new ConnectionsViewModel(this);
+
+        UpdateStatusTitle = "Up to date";
+        UpdateStatusSubtitle = $"RemoteManager v{_updateService.CurrentVersion} is installed.";
+        FooterUpdateStatusText = $"v{_updateService.CurrentVersion}";
     }
 
     public async Task InitializeAsync()
@@ -103,6 +149,16 @@ public partial class MainViewModel : ObservableObject
             await Task.Delay(300);
             await ConnectionsVM.PingAllAsync();
         });
+
+        // On startup check for updates if enabled
+        if (Settings.AutoCheckForUpdates)
+        {
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(1800);
+                await CheckForUpdatesAsync(silentOnUpToDate: true);
+            });
+        }
     }
 
     public async Task LoadDataAsync()
@@ -732,6 +788,180 @@ public partial class MainViewModel : ObservableObject
         var cred = Credentials.FirstOrDefault(c => c.Id == credentialId.Value);
         return cred != null ? cred.Title : "Unknown";
     }
+
+    #region Updates
+    [RelayCommand]
+    public async Task CheckForUpdatesAsync(bool silentOnUpToDate = false)
+    {
+        if (IsCheckingForUpdates) return;
+
+        SafeDispatch(() =>
+        {
+            IsCheckingForUpdates = true;
+            UpdateStatusTitle = "Checking for updates...";
+            UpdateStatusSubtitle = "Connecting to GitHub Releases...";
+            FooterUpdateStatusText = $"v{_updateService.CurrentVersion} (Checking...)";
+        });
+
+        try
+        {
+            var result = await _updateService.CheckForUpdatesAsync(Settings.CheckPrereleases);
+
+            SafeDispatch(() =>
+            {
+                Settings.LastUpdateCheckTime = DateTime.UtcNow;
+                _ = _databaseService.SaveSettingsAsync(Settings);
+
+                if (result.Status == UpdateCheckStatus.UpdateAvailable && result.LatestRelease != null)
+                {
+                    IsUpdateAvailable = true;
+                    LatestRelease = result.LatestRelease;
+                    HasPortableZip = result.LatestRelease.ZipAsset != null;
+                    UpdateStatusTitle = $"New update available: {result.LatestRelease.TagName}";
+                    UpdateStatusSubtitle = $"A newer version of RemoteManager is ready to download and install.";
+                    FooterUpdateStatusText = $"v{_updateService.CurrentVersion} (Update {result.LatestRelease.TagName} available)";
+                }
+                else if (result.Status == UpdateCheckStatus.UpToDate)
+                {
+                    IsUpdateAvailable = false;
+                    LatestRelease = result.LatestRelease;
+                    UpdateStatusTitle = "RemoteManager is up to date";
+                    UpdateStatusSubtitle = $"You are running the latest version (v{_updateService.CurrentVersion}).";
+                    FooterUpdateStatusText = $"v{_updateService.CurrentVersion} (Latest)";
+                }
+                else
+                {
+                    IsUpdateAvailable = false;
+                    UpdateStatusTitle = "Update check failed";
+                    UpdateStatusSubtitle = result.ErrorMessage ?? "Could not check for updates.";
+                    FooterUpdateStatusText = silentOnUpToDate ? $"v{_updateService.CurrentVersion}" : $"v{_updateService.CurrentVersion} (Update check failed)";
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            LogEngine.Instance.Error("App", "Error checking for updates", ex);
+            SafeDispatch(() =>
+            {
+                IsUpdateAvailable = false;
+                UpdateStatusTitle = "Update check failed";
+                UpdateStatusSubtitle = ex.Message;
+                FooterUpdateStatusText = silentOnUpToDate ? $"v{_updateService.CurrentVersion}" : "Update check failed";
+            });
+        }
+        finally
+        {
+            SafeDispatch(() => IsCheckingForUpdates = false);
+        }
+    }
+
+    [RelayCommand]
+    public async Task DownloadAndInstallUpdateAsync()
+    {
+        if (LatestRelease == null || IsDownloadingUpdate) return;
+
+        var msiAsset = LatestRelease.MsiAsset;
+        if (msiAsset == null)
+        {
+            OpenReleasePage();
+            return;
+        }
+
+        IsDownloadingUpdate = true;
+        UpdateDownloadProgress = 0;
+        UpdateDownloadProgressPercentage = "0%";
+        FooterUpdateStatusText = "Downloading update...";
+
+        var tempDir = Path.Combine(Path.GetTempPath(), "RemoteManager-Update");
+        try
+        {
+            var progress = new Progress<double>(p =>
+            {
+                SafeDispatch(() =>
+                {
+                    UpdateDownloadProgress = p * 100;
+                    UpdateDownloadProgressPercentage = $"{(int)(p * 100)}%";
+                    FooterUpdateStatusText = $"Downloading update: {(int)(p * 100)}%";
+                });
+            });
+
+            var downloadedMsi = await _updateService.DownloadAssetAsync(msiAsset, tempDir, progress);
+
+            // Verify checksum if available
+            if (LatestRelease.ChecksumsAsset != null)
+            {
+                FooterUpdateStatusText = "Verifying checksum...";
+                var verified = await _updateService.VerifyChecksumAsync(downloadedMsi, LatestRelease.ChecksumsAsset.DownloadUrl);
+                if (!verified)
+                {
+                    ShowErrorMessage("Update Verification Failed", "The downloaded update failed SHA-256 checksum verification. The file may be corrupt or incomplete.");
+                    FooterUpdateStatusText = "Checksum verification failed";
+                    return;
+                }
+            }
+
+            FooterUpdateStatusText = "Update ready to install";
+
+            bool confirm = RequestConfirmation?.Invoke(
+                "Install Update",
+                $"Update {LatestRelease.TagName} has been downloaded successfully.\n\nRemoteManager will now launch the Windows Installer and close. Proceed?") ?? true;
+
+            if (confirm)
+            {
+                var launched = _updateService.LaunchInstaller(downloadedMsi);
+                if (launched)
+                {
+                    SafeDispatch(() => Application.Current?.Shutdown());
+                }
+                else
+                {
+                    ShowErrorMessage("Installer Error", $"Failed to launch installer package at:\n{downloadedMsi}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogEngine.Instance.Error("App", "Failed to download update", ex);
+            ShowErrorMessage("Download Error", $"Failed to download update: {ex.Message}");
+            FooterUpdateStatusText = "Download failed";
+        }
+        finally
+        {
+            SafeDispatch(() => IsDownloadingUpdate = false);
+        }
+    }
+
+    [RelayCommand]
+    public void OpenReleasePage()
+    {
+        var url = LatestRelease?.HtmlUrl ?? "https://github.com/vyntechau/RemoteManager/releases";
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            LogEngine.Instance.Error("App", "Failed to open release URL", ex);
+        }
+    }
+
+    [RelayCommand]
+    public void DownloadPortableZip()
+    {
+        var zipUrl = LatestRelease?.ZipAsset?.DownloadUrl;
+        if (!string.IsNullOrEmpty(zipUrl))
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo { FileName = zipUrl, UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                LogEngine.Instance.Error("App", "Failed to open portable ZIP URL", ex);
+            }
+        }
+    }
+    #endregion
 
     internal Action<Action> SafeDispatch { get; set; } = action =>
     {

@@ -37,6 +37,7 @@ public partial class App : System.Windows.Application
         TaskScheduler.UnobservedTaskException += (s, args) =>
         {
             logger.Error("App", "Unobserved background task exception", args.Exception);
+            args.SetObserved();
         };
 
         try

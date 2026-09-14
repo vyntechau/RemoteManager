@@ -3,6 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              Background="{DynamicResource ApplicationBackgroundBrush}">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="40,32">
         <StackPanel MaxWidth="860" MinWidth="640" HorizontalAlignment="Center">
 
@@ -26,7 +29,7 @@
                             <TextBlock Text="RemoteManager" FontSize="26" FontWeight="Bold"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,12,0" VerticalAlignment="Center"/>
                             <Border Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="8,2" VerticalAlignment="Center">
-                                <TextBlock Text="v1.0.0" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                                <TextBlock Text="{Binding CurrentAppVersion, StringFormat='v{0}', FallbackValue='v1.0.0'}" FontSize="11" FontWeight="Bold" Foreground="White"/>
                             </Border>
                         </StackPanel>
 
@@ -37,6 +40,125 @@
                                    FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Grid>
+            </Border>
+
+            <!-- SECTION: SOFTWARE UPDATES -->
+            <TextBlock Text="Software Updates &amp; Releases" FontSize="16" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                    CornerRadius="10" Padding="24,20" Margin="0,0,0,24">
+                <StackPanel>
+                    <!-- Header row: Status Icon, Title/Subtitle, Check Button -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Icon badge -->
+                        <Border Grid.Column="0" Width="44" Height="44" CornerRadius="8" Margin="0,0,18,0"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}" VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="ArrowDownload24" FontSize="22" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- Status text -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding UpdateStatusTitle}" FontWeight="SemiBold" FontSize="15"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="{Binding UpdateStatusSubtitle}" FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <!-- Check for Updates button -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:Button Content="Check for Updates"
+                                       Command="{Binding CheckForUpdatesCommand}"
+                                       Appearance="Secondary" Height="34" Padding="16,0">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="ArrowSync24"/>
+                                </ui:Button.Icon>
+                            </ui:Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Update Available Details Panel (Visible if IsUpdateAvailable) -->
+                    <Border Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVis}}"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="18,16" Margin="0,16,0,0">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding LatestRelease.Name}" FontWeight="Bold" FontSize="14"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Border Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="NEW" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding LatestRelease.PublishedAt, StringFormat='Published on {0:MMMM dd, yyyy}'}"
+                                               FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Release Notes Excerpt -->
+                            <TextBlock Text="Release Notes &amp; Changelog:" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,6"/>
+                            <Border Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="6"
+                                    BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                                    Padding="12,10" Margin="0,0,0,14" MaxHeight="140">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <TextBlock Text="{Binding LatestRelease.Body}" TextWrapping="Wrap" FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" LineHeight="18"/>
+                                </ScrollViewer>
+                            </Border>
+
+                            <!-- Download Progress Bar (visible during download) -->
+                            <StackPanel Visibility="{Binding IsDownloadingUpdate, Converter={StaticResource BoolToVis}}" Margin="0,0,0,12">
+                                <Grid Margin="0,0,0,4">
+                                    <TextBlock Text="Downloading update package..." FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <TextBlock Text="{Binding UpdateDownloadProgressPercentage}" FontSize="12" FontWeight="SemiBold"
+                                               HorizontalAlignment="Right" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                                </Grid>
+                                <ProgressBar Value="{Binding UpdateDownloadProgress}" Maximum="100" Height="6"/>
+                            </StackPanel>
+
+                            <!-- Actions Row -->
+                            <StackPanel Orientation="Horizontal">
+                                <ui:Button Content="Download &amp; Install (.msi)"
+                                           Command="{Binding DownloadAndInstallUpdateCommand}"
+                                           Appearance="Primary" Height="34" Padding="16,0" Margin="0,0,8,0">
+                                    <ui:Button.Icon>
+                                        <ui:SymbolIcon Symbol="ArrowDownload24"/>
+                                    </ui:Button.Icon>
+                                </ui:Button>
+                                <ui:Button Content="Download Portable ZIP"
+                                           Command="{Binding DownloadPortableZipCommand}"
+                                           Appearance="Secondary" Height="34" Padding="14,0" Margin="0,0,8,0"
+                                           Visibility="{Binding HasPortableZip, Converter={StaticResource BoolToVis}}">
+                                    <ui:Button.Icon>
+                                        <ui:SymbolIcon Symbol="FolderZip24"/>
+                                    </ui:Button.Icon>
+                                </ui:Button>
+                                <ui:Button Content="View on GitHub"
+                                           Command="{Binding OpenReleasePageCommand}"
+                                           Appearance="Transparent" Height="34" Padding="12,0">
+                                    <ui:Button.Icon>
+                                        <ui:SymbolIcon Symbol="Open24"/>
+                                    </ui:Button.Icon>
+                                </ui:Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
             </Border>
 
             <!-- SECTION: PURPOSE & MISSION -->

@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
+using RemoteManager.App.ViewModels;
 
 namespace RemoteManager.App.Views;
 
@@ -11,6 +12,14 @@ public partial class AboutView : UserControl
     public AboutView()
     {
         InitializeComponent();
+
+        Loaded += (s, e) =>
+        {
+            if (DataContext == null && Application.Current?.MainWindow is MainWindow mw)
+            {
+                DataContext = mw.DataContext;
+            }
+        };
     }
 
     private void OnHyperlinkRequestNavigate(object sender, RequestNavigateEventArgs e)

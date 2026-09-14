@@ -109,6 +109,14 @@ public partial class SettingsView : UserControl
         ModuleOptionsPanel.IsEnabled = settings.IsLoggingEnabled;
         LogLevelContainerGrid.IsEnabled = settings.IsLoggingEnabled;
 
+        // 6. Populate Update Settings
+        AutoCheckUpdatesCheckBox.IsChecked = settings.AutoCheckForUpdates;
+        IncludePrereleasesCheckBox.IsChecked = settings.CheckPrereleases;
+        if (settings.LastUpdateCheckTime.HasValue)
+        {
+            LastUpdateCheckTextBlock.Text = $"Last checked: {settings.LastUpdateCheckTime.Value.ToLocalTime():yyyy-MM-dd HH:mm} • vyntechau/RemoteManager";
+        }
+
         _isLoaded = true;
     }
 
@@ -448,6 +456,26 @@ public partial class SettingsView : UserControl
         {
             _viewModel.Settings.MinimumLogLevel = item.Tag.ToString() ?? "Debug";
             _ = _viewModel.SaveSettingsAsync();
+        }
+    }
+
+    private void OnUpdateSettingToggled(object sender, RoutedEventArgs e)
+    {
+        if (!_isLoaded || _viewModel == null) return;
+
+        _viewModel.Settings.AutoCheckForUpdates = AutoCheckUpdatesCheckBox.IsChecked ?? true;
+        _viewModel.Settings.CheckPrereleases = IncludePrereleasesCheckBox.IsChecked ?? false;
+
+        _ = _viewModel.SaveSettingsAsync();
+    }
+
+    private async void OnCheckUpdatesClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel == null) return;
+        await _viewModel.CheckForUpdatesAsync(silentOnUpToDate: false);
+        if (_viewModel.Settings.LastUpdateCheckTime.HasValue)
+        {
+            LastUpdateCheckTextBlock.Text = $"Last checked: {_viewModel.Settings.LastUpdateCheckTime.Value.ToLocalTime():yyyy-MM-dd HH:mm} • vyntechau/RemoteManager";
         }
     }
 }

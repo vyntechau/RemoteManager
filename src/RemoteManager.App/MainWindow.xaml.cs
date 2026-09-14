@@ -39,6 +39,7 @@ public partial class MainWindow : Window
         };
 
         SetupDialogHandlers(crypto);
+        _viewModel.RequestNavigateToAbout = NavigateToAbout;
 
         Loaded += async (s, e) =>
         {
@@ -419,11 +420,11 @@ public partial class MainWindow : Window
         LogEngine.Instance.Info("UI", "Navigated to Settings page.");
     }
 
-    private void OnNavAboutClick(object sender, RoutedEventArgs e)
+    public void NavigateToAbout()
     {
         if (HasActiveSessions())
         {
-            OpenAsUtilityTab("About", "About", () => new AboutView());
+            OpenAsUtilityTab("About", "About", () => new AboutView { DataContext = _viewModel });
             return;
         }
 
@@ -432,6 +433,16 @@ public partial class MainWindow : Window
 
         if (NavAboutItem != null) NavAboutItem.IsActive = true;
         LogEngine.Instance.Info("UI", "Navigated to About page.");
+    }
+
+    private void OnNavAboutClick(object sender, RoutedEventArgs e)
+    {
+        NavigateToAbout();
+    }
+
+    private void OnFooterUpdateStatusClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        NavigateToAbout();
     }
 
     /// <summary>
