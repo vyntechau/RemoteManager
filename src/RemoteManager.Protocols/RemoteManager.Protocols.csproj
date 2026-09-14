@@ -17,6 +17,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);SYSLIB0021;SYSLIB0051</NoWarn>
   </PropertyGroup>
 
 </Project>
