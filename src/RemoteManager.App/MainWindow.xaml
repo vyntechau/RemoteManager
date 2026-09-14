@@ -190,6 +190,7 @@
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <Border Padding="8,6" Background="Transparent" CornerRadius="4"
+                                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     ToolTip="Double-click to connect • Right-click for options">
                                                 <Border.InputBindings>
                                                     <MouseBinding MouseAction="LeftDoubleClick"
@@ -199,21 +200,21 @@
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem Header="Connect (Embedded Tab)"
-                                                                  Command="{Binding DataContext.ConnectTabbedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                  CommandParameter="{Binding}"/>
+                                                                  Command="{Binding PlacementTarget.Tag.ConnectTabbedCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                                         <MenuItem Header="Connect (Fullscreen)"
-                                                                  Command="{Binding DataContext.ConnectFullscreenCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                  CommandParameter="{Binding}"/>
+                                                                  Command="{Binding PlacementTarget.Tag.ConnectFullscreenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                                         <MenuItem Header="Connect (Native MSTSC Window)"
-                                                                  Command="{Binding DataContext.ConnectExternalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                  CommandParameter="{Binding}"/>
+                                                                  Command="{Binding PlacementTarget.Tag.ConnectExternalCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                                         <Separator/>
                                                         <MenuItem Header="Edit"
-                                                                  Command="{Binding DataContext.EditConnectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                  CommandParameter="{Binding}"/>
+                                                                  Command="{Binding PlacementTarget.Tag.EditConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                                         <MenuItem Header="Delete"
-                                                                  Command="{Binding DataContext.DeleteConnectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                  CommandParameter="{Binding}"/>
+                                                                  Command="{Binding PlacementTarget.Tag.DeleteConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                                     </ContextMenu>
                                                 </Border.ContextMenu>
 
@@ -291,8 +292,19 @@
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <Border Margin="2,3" Padding="10,8" CornerRadius="6"
+                                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     Background="{DynamicResource ControlFillColorDefaultBrush}"
                                                     BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1">
+                                                <Border.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Edit"
+                                                                  Command="{Binding PlacementTarget.Tag.EditCredentialCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                        <MenuItem Header="Delete"
+                                                                  Command="{Binding PlacementTarget.Tag.DeleteCredentialCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>

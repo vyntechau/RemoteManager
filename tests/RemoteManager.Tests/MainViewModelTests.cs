@@ -708,6 +708,38 @@ public class MainViewModelTests : IDisposable
         Assert.NotNull(conn);
         Assert.Equal(3389, conn.Port);
     }
+
+    [Fact]
+    public async Task MainViewModel_EditConnectionAsync_SupportsMultipleParameterTypes()
+    {
+        await _db.InitializeAsync();
+        var conn = new ConnectionItem { Name = "MainVM Edit Test", Host = "10.0.0.50" };
+        await _mainVm.SaveAndReloadConnectionAsync(conn);
+
+        var card = new ConnectionCardViewModel(conn);
+
+        ConnectionItem? pageOpened = null;
+        _mainVm.RequestConnectionEditorPage = item => pageOpened = item;
+
+        // 1. Passing ConnectionItem
+        await _mainVm.EditConnectionAsync(conn);
+        Assert.NotNull(pageOpened);
+        Assert.Equal("MainVM Edit Test", pageOpened.DisplayName);
+
+        // 2. Passing ConnectionCardViewModel
+        pageOpened = null;
+        await _mainVm.EditConnectionAsync(card);
+        Assert.NotNull(pageOpened);
+        Assert.Equal("MainVM Edit Test", pageOpened.DisplayName);
+
+        // 3. Passing null or invalid param (null safe)
+        pageOpened = null;
+        await _mainVm.EditConnectionAsync(null);
+        Assert.Null(pageOpened);
+
+        await _mainVm.EditConnectionAsync(12345);
+        Assert.Null(pageOpened);
+    }
 }
 
 

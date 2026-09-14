@@ -36,97 +36,106 @@ public partial class ConnectionEditView : UserControl
 
     public void LoadConnection(ConnectionItem? existing, IEnumerable<Credential> credentials, IEncryptionService? encryptionService = null)
     {
-        Existing = existing;
-        ResultConnection = null;
-        ResultCredential = null;
-        _encryptionService = encryptionService;
-        _isInlinePasswordRevealed = false;
-
-        // Reset inline fields
-        if (InlineUsernameInput != null) InlineUsernameInput.Text = string.Empty;
-        if (InlinePasswordInput != null) InlinePasswordInput.Password = string.Empty;
-        if (InlinePasswordVisibleInput != null)
+        LogEngine.Instance.Info("UI", $"ConnectionEditView: Loading connection (Existing: '{existing?.DisplayName ?? "New"}', Protocol: {existing?.Protocol.ToString() ?? "RDP"}).");
+        try
         {
-            InlinePasswordVisibleInput.Text = string.Empty;
-            InlinePasswordVisibleInput.Visibility = Visibility.Collapsed;
-        }
-        if (InlinePasswordInput != null) InlinePasswordInput.Visibility = Visibility.Visible;
-        if (InlinePasswordEyeIcon != null) InlinePasswordEyeIcon.Symbol = Wpf.Ui.Controls.SymbolRegular.Eye24;
-        if (InlineDomainInput != null) InlineDomainInput.Text = string.Empty;
-        if (InlineTitleInput != null) InlineTitleInput.Text = string.Empty;
-        if (SaveToVaultCheckbox != null) SaveToVaultCheckbox.IsChecked = true;
+            Existing = existing;
+            ResultConnection = null;
+            ResultCredential = null;
+            _encryptionService = encryptionService;
+            _isInlinePasswordRevealed = false;
 
-        if (RadioVaultCred != null) RadioVaultCred.IsChecked = true;
-        if (RadioCustomCred != null) RadioCustomCred.IsChecked = false;
-        if (VaultPickerArea != null) VaultPickerArea.Visibility = Visibility.Visible;
-        if (InlineCredArea != null) InlineCredArea.Visibility = Visibility.Collapsed;
-
-        // Populate credential dropdown
-        var credList = credentials.ToList();
-        credList.Insert(0, new Credential { Id = Guid.Empty, Title = "(None - Prompt during login)" });
-        if (CredentialPicker != null)
-        {
-            CredentialPicker.ItemsSource = credList;
-            CredentialPicker.SelectedIndex = 0;
-        }
-
-        // Reset errors
-        if (NameErrorText != null) NameErrorText.Visibility = Visibility.Collapsed;
-        if (HostErrorText != null) HostErrorText.Visibility = Visibility.Collapsed;
-        if (PortErrorText != null) PortErrorText.Visibility = Visibility.Collapsed;
-
-        if (existing != null)
-        {
-            if (PageTitleText != null) PageTitleText.Text = $"Edit Connection: {existing.DisplayName}";
-            if (PageSubtitleText != null) PageSubtitleText.Text = $"Modify endpoint, credentials, or session mode for '{existing.DisplayName}'";
-            if (NameInput != null) NameInput.Text = existing.Name;
-            if (HostInput != null) HostInput.Text = existing.Host;
-            if (PortInput != null) PortInput.Text = existing.Port.ToString();
-            _selectedProtocol = existing.Protocol;
-            _selectedDisplayMode = existing.DisplayMode;
-
-            if (existing.CredentialId.HasValue && CredentialPicker != null)
+            // Reset inline fields
+            if (InlineUsernameInput != null) InlineUsernameInput.Text = string.Empty;
+            if (InlinePasswordInput != null) InlinePasswordInput.Password = string.Empty;
+            if (InlinePasswordVisibleInput != null)
             {
-                CredentialPicker.SelectedValue = existing.CredentialId.Value;
+                InlinePasswordVisibleInput.Text = string.Empty;
+                InlinePasswordVisibleInput.Visibility = Visibility.Collapsed;
+            }
+            if (InlinePasswordInput != null) InlinePasswordInput.Visibility = Visibility.Visible;
+            if (InlinePasswordEyeIcon != null) InlinePasswordEyeIcon.Symbol = Wpf.Ui.Controls.SymbolRegular.Eye24;
+            if (InlineDomainInput != null) InlineDomainInput.Text = string.Empty;
+            if (InlineTitleInput != null) InlineTitleInput.Text = string.Empty;
+            if (SaveToVaultCheckbox != null) SaveToVaultCheckbox.IsChecked = true;
 
-                // Pre-populate inline fields if the user switches to inline entry
-                var matched = credList.FirstOrDefault(c => c.Id == existing.CredentialId.Value);
-                if (matched != null)
+            if (RadioVaultCred != null) RadioVaultCred.IsChecked = true;
+            if (RadioCustomCred != null) RadioCustomCred.IsChecked = false;
+            if (VaultPickerArea != null) VaultPickerArea.Visibility = Visibility.Visible;
+            if (InlineCredArea != null) InlineCredArea.Visibility = Visibility.Collapsed;
+
+            // Populate credential dropdown
+            var credList = credentials.ToList();
+            credList.Insert(0, new Credential { Id = Guid.Empty, Title = "(None - Prompt during login)" });
+            if (CredentialPicker != null)
+            {
+                CredentialPicker.ItemsSource = credList;
+                CredentialPicker.SelectedIndex = 0;
+            }
+
+            // Reset errors
+            if (NameErrorText != null) NameErrorText.Visibility = Visibility.Collapsed;
+            if (HostErrorText != null) HostErrorText.Visibility = Visibility.Collapsed;
+            if (PortErrorText != null) PortErrorText.Visibility = Visibility.Collapsed;
+
+            if (existing != null)
+            {
+                if (PageTitleText != null) PageTitleText.Text = $"Edit Connection: {existing.DisplayName}";
+                if (PageSubtitleText != null) PageSubtitleText.Text = $"Modify endpoint, credentials, or session mode for '{existing.DisplayName}'";
+                if (NameInput != null) NameInput.Text = existing.Name;
+                if (HostInput != null) HostInput.Text = existing.Host;
+                if (PortInput != null) PortInput.Text = existing.Port.ToString();
+                _selectedProtocol = existing.Protocol;
+                _selectedDisplayMode = existing.DisplayMode;
+
+                if (existing.CredentialId.HasValue && CredentialPicker != null)
                 {
-                    if (InlineUsernameInput != null) InlineUsernameInput.Text = matched.Username;
-                    if (InlineDomainInput != null) InlineDomainInput.Text = matched.Domain ?? string.Empty;
-                    if (InlineTitleInput != null) InlineTitleInput.Text = matched.Title;
+                    CredentialPicker.SelectedValue = existing.CredentialId.Value;
 
-                    if (!string.IsNullOrEmpty(matched.EncryptedPassword) && _encryptionService != null)
+                    // Pre-populate inline fields if the user switches to inline entry
+                    var matched = credList.FirstOrDefault(c => c.Id == existing.CredentialId.Value);
+                    if (matched != null)
                     {
-                        try
+                        if (InlineUsernameInput != null) InlineUsernameInput.Text = matched.Username;
+                        if (InlineDomainInput != null) InlineDomainInput.Text = matched.Domain ?? string.Empty;
+                        if (InlineTitleInput != null) InlineTitleInput.Text = matched.Title;
+
+                        if (!string.IsNullOrEmpty(matched.EncryptedPassword) && _encryptionService != null)
                         {
-                            var dec = _encryptionService.Decrypt(matched.EncryptedPassword);
-                            if (InlinePasswordInput != null) InlinePasswordInput.Password = dec;
-                            if (InlinePasswordVisibleInput != null) InlinePasswordVisibleInput.Text = dec;
-                        }
-                        catch
-                        {
-                            // Ignore decryption failure
+                            try
+                            {
+                                var dec = _encryptionService.Decrypt(matched.EncryptedPassword);
+                                if (InlinePasswordInput != null) InlinePasswordInput.Password = dec;
+                                if (InlinePasswordVisibleInput != null) InlinePasswordVisibleInput.Text = dec;
+                            }
+                            catch
+                            {
+                                // Ignore decryption failure
+                            }
                         }
                     }
                 }
             }
-        }
-        else
-        {
-            if (PageTitleText != null) PageTitleText.Text = "New Remote Connection";
-            if (PageSubtitleText != null) PageSubtitleText.Text = "Configure server endpoints, protocol parameters, and authentication credentials";
-            if (NameInput != null) NameInput.Text = string.Empty;
-            if (HostInput != null) HostInput.Text = string.Empty;
-            if (PortInput != null) PortInput.Text = "3389";
-            _selectedProtocol = ProtocolType.RDP;
-            _selectedDisplayMode = DisplayMode.Tabbed;
-        }
+            else
+            {
+                if (PageTitleText != null) PageTitleText.Text = "New Remote Connection";
+                if (PageSubtitleText != null) PageSubtitleText.Text = "Configure server endpoints, protocol parameters, and authentication credentials";
+                if (NameInput != null) NameInput.Text = string.Empty;
+                if (HostInput != null) HostInput.Text = string.Empty;
+                if (PortInput != null) PortInput.Text = "3389";
+                _selectedProtocol = ProtocolType.RDP;
+                _selectedDisplayMode = DisplayMode.Tabbed;
+            }
 
-        UpdateProtocolUI();
-        UpdateDisplayModeUI();
-        UpdatePreview();
+            UpdateProtocolUI();
+            UpdateDisplayModeUI();
+            UpdatePreview();
+            LogEngine.Instance.Info("UI", $"ConnectionEditView: Successfully loaded connection '{existing?.DisplayName ?? "New"}'.");
+        }
+        catch (Exception ex)
+        {
+            LogEngine.Instance.Error("UI", $"ConnectionEditView: Error loading connection '{existing?.DisplayName ?? "New"}'", ex);
+        }
     }
 
     private void UpdateProtocolUI()

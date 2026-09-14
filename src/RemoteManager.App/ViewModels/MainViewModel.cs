@@ -533,13 +533,18 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task AddConnectionAsync()
     {
+        LogEngine.Instance.Info("UI", "MainViewModel.AddConnectionAsync triggered.");
         if (RequestConnectionEditorPage != null)
         {
             RequestConnectionEditorPage.Invoke(null);
             return;
         }
 
-        if (RequestConnectionEditor == null) return;
+        if (RequestConnectionEditor == null)
+        {
+            LogEngine.Instance.Warn("UI", "No ConnectionEditor handler registered for AddConnectionAsync!");
+            return;
+        }
         var newConn = await RequestConnectionEditor.Invoke(null);
         if (newConn != null)
         {
@@ -549,15 +554,37 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task EditConnectionAsync(ConnectionItem connection)
+    public async Task EditConnectionAsync(object? parameter)
     {
+        ConnectionItem? connection = parameter switch
+        {
+            ConnectionItem conn => conn,
+            ConnectionCardViewModel card => card.Model,
+            _ => null
+        };
+
+        if (connection == null)
+        {
+            LogEngine.Instance.Warn("UI", $"MainViewModel.EditConnectionAsync called with null or invalid connection parameter: '{parameter}'.");
+            return;
+        }
+
+        LogEngine.Instance.Info("UI", $"MainViewModel: EditConnectionAsync triggered for '{connection.DisplayName}' (Id: {connection.Id}).");
+
         if (RequestConnectionEditorPage != null)
         {
+            LogEngine.Instance.Debug("UI", $"Invoking RequestConnectionEditorPage for '{connection.DisplayName}'");
             RequestConnectionEditorPage.Invoke(connection);
             return;
         }
 
-        if (RequestConnectionEditor == null) return;
+        if (RequestConnectionEditor == null)
+        {
+            LogEngine.Instance.Warn("UI", $"No ConnectionEditor handler registered for EditConnectionAsync on '{connection.DisplayName}'!");
+            return;
+        }
+
+        LogEngine.Instance.Debug("UI", $"Invoking modal RequestConnectionEditor fallback for '{connection.DisplayName}'");
         var updated = await RequestConnectionEditor.Invoke(connection);
         if (updated != null)
         {
@@ -573,8 +600,21 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task DeleteConnectionAsync(ConnectionItem connection)
+    public async Task DeleteConnectionAsync(object? parameter)
     {
+        ConnectionItem? connection = parameter switch
+        {
+            ConnectionItem conn => conn,
+            ConnectionCardViewModel card => card.Model,
+            _ => null
+        };
+
+        if (connection == null)
+        {
+            LogEngine.Instance.Warn("UI", $"MainViewModel.DeleteConnectionAsync called with null or invalid connection parameter: '{parameter}'.");
+            return;
+        }
+
         bool confirm;
         if (RequestConfirmWithNameAsync != null)
         {

@@ -320,31 +320,57 @@ public partial class ConnectionsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task EditConnectionAsync(ConnectionCardViewModel? card)
+    public async Task EditConnectionAsync(object? parameter)
     {
-        if (card != null)
+        ConnectionItem? model = parameter switch
         {
-            await _mainViewModel.EditConnectionAsync(card.Model);
+            ConnectionCardViewModel card => card.Model,
+            ConnectionItem conn => conn,
+            _ => null
+        };
+
+        if (model != null)
+        {
+            LogEngine.Instance.Info("UI", $"ConnectionsViewModel: Requesting edit for connection '{model.DisplayName}' (Id: {model.Id}).");
+            await _mainViewModel.EditConnectionAsync(model);
+        }
+        else
+        {
+            LogEngine.Instance.Warn("UI", $"ConnectionsViewModel.EditConnectionAsync called with null or invalid parameter: '{parameter}'.");
         }
     }
 
     [RelayCommand]
-    public async Task DuplicateConnectionAsync(ConnectionCardViewModel? card)
+    public async Task DuplicateConnectionAsync(object? parameter)
     {
-        if (card != null)
+        ConnectionItem? model = parameter switch
         {
-            var cloned = card.Model.Clone();
+            ConnectionCardViewModel card => card.Model,
+            ConnectionItem conn => conn,
+            _ => null
+        };
+
+        if (model != null)
+        {
+            var cloned = model.Clone();
             await _mainViewModel.SaveAndReloadConnectionAsync(cloned);
-            LogEngine.Instance.Info("UI", $"Duplicated connection '{card.DisplayName}' to '{cloned.Name}'");
+            LogEngine.Instance.Info("UI", $"Duplicated connection '{model.DisplayName}' to '{cloned.Name}'");
         }
     }
 
     [RelayCommand]
-    public async Task DeleteConnectionAsync(ConnectionCardViewModel? card)
+    public async Task DeleteConnectionAsync(object? parameter)
     {
-        if (card != null)
+        ConnectionItem? model = parameter switch
         {
-            await _mainViewModel.DeleteConnectionAsync(card.Model);
+            ConnectionCardViewModel card => card.Model,
+            ConnectionItem conn => conn,
+            _ => null
+        };
+
+        if (model != null)
+        {
+            await _mainViewModel.DeleteConnectionAsync(model);
         }
     }
 

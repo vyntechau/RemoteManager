@@ -445,6 +445,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Width="315" Margin="0,0,14,14" Style="{StaticResource ConnectionCardBorderStyle}"
+                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     Cursor="Hand" ToolTip="Double-click to connect • Right-click for options">
                                 <Border.InputBindings>
                                     <MouseBinding MouseAction="LeftDoubleClick"
@@ -455,31 +456,31 @@
                                 <Border.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="Connect (Embedded Tab)"
-                                                  Command="{Binding DataContext.ConnectTabbedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                  CommandParameter="{Binding}"/>
+                                                  Command="{Binding PlacementTarget.Tag.ConnectTabbedCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         <MenuItem Header="Connect (Fullscreen)"
-                                                  Command="{Binding DataContext.ConnectFullscreenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                  CommandParameter="{Binding}"/>
+                                                  Command="{Binding PlacementTarget.Tag.ConnectFullscreenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         <MenuItem Header="Connect (Native MSTSC / Window)"
-                                                  Command="{Binding DataContext.ConnectExternalCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                  CommandParameter="{Binding}"/>
+                                                  Command="{Binding PlacementTarget.Tag.ConnectExternalCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         <Separator/>
                                         <MenuItem Header="Ping / Test Port"
-                                                  Command="{Binding DataContext.PingCardCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                  CommandParameter="{Binding}"/>
+                                                  Command="{Binding PlacementTarget.Tag.PingCardCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         <MenuItem Header="Copy Address"
-                                                  Command="{Binding DataContext.CopyAddressCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                  CommandParameter="{Binding}"/>
+                                                  Command="{Binding PlacementTarget.Tag.CopyAddressCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         <Separator/>
                                         <MenuItem Header="Edit Connection"
-                                                  Command="{Binding DataContext.EditConnectionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                  CommandParameter="{Binding}"/>
+                                                  Command="{Binding PlacementTarget.Tag.EditConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         <MenuItem Header="Duplicate Connection"
-                                                  Command="{Binding DataContext.DuplicateConnectionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                  CommandParameter="{Binding}"/>
+                                                  Command="{Binding PlacementTarget.Tag.DuplicateConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         <MenuItem Header="Delete Connection"
-                                                  Command="{Binding DataContext.DeleteConnectionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                  CommandParameter="{Binding}"/>
+                                                  Command="{Binding PlacementTarget.Tag.DeleteConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                     </ContextMenu>
                                 </Border.ContextMenu>
 

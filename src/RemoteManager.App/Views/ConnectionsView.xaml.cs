@@ -39,7 +39,7 @@ public partial class ConnectionsView : UserControl
 
             if (current is Border border && border.ContextMenu != null)
             {
-                border.ContextMenu.PlacementTarget = button;
+                border.ContextMenu.PlacementTarget = border;
                 border.ContextMenu.IsOpen = true;
             }
         }

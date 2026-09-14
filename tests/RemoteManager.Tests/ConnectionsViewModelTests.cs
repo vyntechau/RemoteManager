@@ -462,6 +462,39 @@ public class ConnectionsViewModelTests : IDisposable
             ConnectionsViewModel.DispatcherProvider = prev;
         }
     }
+
+    [Fact]
+    public async Task ConnectionsViewModel_EditConnectionAsync_SupportsMultipleParameterTypes()
+    {
+        await _db.InitializeAsync();
+        var conn = new ConnectionItem { Name = "Param Test Server", Host = "127.0.0.1", Protocol = ProtocolType.SSH };
+        await _mainVm.SaveAndReloadConnectionAsync(conn);
+        _vm.SyncConnections(_mainVm.Connections, Array.Empty<Credential>());
+
+        var card = _vm.FilteredCards.First(c => c.DisplayName == "Param Test Server");
+
+        ConnectionItem? edited = null;
+        _mainVm.RequestConnectionEditorPage = item => edited = item;
+
+        // 1. Passing ConnectionCardViewModel
+        await _vm.EditConnectionAsync(card);
+        Assert.NotNull(edited);
+        Assert.Equal("Param Test Server", edited.DisplayName);
+
+        // 2. Passing raw ConnectionItem directly
+        edited = null;
+        await _vm.EditConnectionAsync(conn);
+        Assert.NotNull(edited);
+        Assert.Equal("Param Test Server", edited.DisplayName);
+
+        // 3. Passing null or unsupported type (null safety)
+        edited = null;
+        await _vm.EditConnectionAsync(null);
+        Assert.Null(edited);
+
+        await _vm.EditConnectionAsync("invalid_param");
+        Assert.Null(edited);
+    }
 }
 
 

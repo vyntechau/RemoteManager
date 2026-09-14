@@ -1,6 +1,8 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 using RemoteManager.App.ViewModels;
 using RemoteManager.App.Views;
 using RemoteManager.Core.Logging;
@@ -222,86 +224,106 @@ public partial class MainWindow : Window
 
     public void NavigateToConnectionEdit(ConnectionItem? existing, DpapiEncryptionService crypto)
     {
-        if (HasActiveSessions())
+        LogEngine.Instance.Info("UI", $"NavigateToConnectionEdit called (Existing: '{existing?.DisplayName ?? "New"}', HasActiveSessions: {HasActiveSessions()}).");
+        try
         {
-            var title = existing != null ? $"Edit: {existing.Name}" : "New Connection";
-            var tag = existing != null ? $"EditConn_{existing.Id}" : "NewConnection";
-            OpenAsUtilityTab(title, tag, () =>
+            if (HasActiveSessions())
             {
-                var ctrl = new ConnectionEditView();
-                ctrl.LoadConnection(existing, _viewModel.Credentials, crypto);
-                ctrl.ConnectionSaved += async (savedItem, inlineCred, andConnect) =>
+                var title = existing != null ? $"Edit: {existing.DisplayName}" : "New Connection";
+                var tag = existing != null ? $"EditConn_{existing.Id}" : "NewConnection";
+                OpenAsUtilityTab(title, tag, () =>
                 {
-                    if (inlineCred != null)
+                    var ctrl = new ConnectionEditView();
+                    ctrl.LoadConnection(existing, _viewModel.Credentials, crypto);
+                    ctrl.ConnectionSaved += async (savedItem, inlineCred, andConnect) =>
                     {
-                        await _viewModel.SaveAndReloadCredentialAsync(inlineCred);
-                        savedItem.CredentialId = inlineCred.Id;
-                    }
-                    await _viewModel.SaveAndReloadConnectionAsync(savedItem);
-                    CloseUtilityTab(tag);
-                    if (andConnect)
+                        if (inlineCred != null)
+                        {
+                            await _viewModel.SaveAndReloadCredentialAsync(inlineCred);
+                            savedItem.CredentialId = inlineCred.Id;
+                        }
+                        await _viewModel.SaveAndReloadConnectionAsync(savedItem);
+                        CloseUtilityTab(tag);
+                        if (andConnect)
+                        {
+                            await _viewModel.ConnectAsync(savedItem);
+                        }
+                    };
+                    ctrl.CancelRequested += () =>
                     {
-                        await _viewModel.ConnectAsync(savedItem);
-                    }
-                };
-                ctrl.CancelRequested += () =>
-                {
-                    CloseUtilityTab(tag);
-                };
-                return ctrl;
-            });
-            return;
+                        CloseUtilityTab(tag);
+                    };
+                    return ctrl;
+                });
+                return;
+            }
+
+            // Capture current view as previous
+            if (ConnectionsPageArea.Visibility == Visibility.Visible)
+                _previousViewNavigator = () => OnNavConnectionsClick(this, new RoutedEventArgs());
+            else if (LogsPageArea.Visibility == Visibility.Visible)
+                _previousViewNavigator = () => OnNavLogsClick(this, new RoutedEventArgs());
+            else if (SettingsPageArea.Visibility == Visibility.Visible)
+                _previousViewNavigator = () => OnNavSettingsClick(this, new RoutedEventArgs());
+            else
+                _previousViewNavigator = () => ReturnToWorkspace();
+
+            HideAllPages();
+            ConnectionEditControl.LoadConnection(existing, _viewModel.Credentials, crypto);
+            ConnectionEditPageArea.Visibility = Visibility.Visible;
+            LogEngine.Instance.Info("UI", $"Navigated to Connection Edit page (Editing: '{existing?.DisplayName ?? "New"}').");
         }
-
-        // Capture current view as previous
-        if (ConnectionsPageArea.Visibility == Visibility.Visible)
-            _previousViewNavigator = () => OnNavConnectionsClick(this, new RoutedEventArgs());
-        else if (LogsPageArea.Visibility == Visibility.Visible)
-            _previousViewNavigator = () => OnNavLogsClick(this, new RoutedEventArgs());
-        else if (SettingsPageArea.Visibility == Visibility.Visible)
-            _previousViewNavigator = () => OnNavSettingsClick(this, new RoutedEventArgs());
-        else
-            _previousViewNavigator = () => ReturnToWorkspace();
-
-        HideAllPages();
-        ConnectionEditControl.LoadConnection(existing, _viewModel.Credentials, crypto);
-        ConnectionEditPageArea.Visibility = Visibility.Visible;
-        LogEngine.Instance.Info("UI", $"Navigated to Connection Edit page (Editing: {existing?.Name ?? "New"}).");
+        catch (Exception ex)
+        {
+            LogEngine.Instance.Error("UI", $"Error navigating to Connection Edit page for '{existing?.DisplayName ?? "New"}'", ex);
+        }
     }
 
     public void NavigateToCredentialEdit(Credential? existing, DpapiEncryptionService crypto)
     {
-        if (HasActiveSessions())
+        LogEngine.Instance.Info("UI", $"NavigateToCredentialEdit called (Existing: '{existing?.Title ?? "New"}', HasActiveSessions: {HasActiveSessions()}).");
+        try
         {
-            var title = existing != null ? $"Edit: {existing.Title}" : "New Credential";
-            var tag = existing != null ? $"EditCred_{existing.Id}" : "NewCredential";
-            OpenAsUtilityTab(title, tag, () =>
+            if (HasActiveSessions())
             {
-                var ctrl = new CredentialEditView();
-                ctrl.LoadCredential(existing, crypto);
-                ctrl.CredentialSaved += async (savedCred) =>
+                var title = existing != null ? $"Edit: {existing.Title}" : "New Credential";
+                var tag = existing != null ? $"EditCred_{existing.Id}" : "NewCredential";
+                OpenAsUtilityTab(title, tag, () =>
                 {
-                    await _viewModel.SaveAndReloadCredentialAsync(savedCred);
-                    CloseUtilityTab(tag);
-                };
-                ctrl.CancelRequested += () =>
-                {
-                    CloseUtilityTab(tag);
-                };
-                return ctrl;
-            });
-            return;
+                    var ctrl = new CredentialEditView();
+                    ctrl.LoadCredential(existing, crypto);
+                    ctrl.CredentialSaved += async (savedCred) =>
+                    {
+                        await _viewModel.SaveAndReloadCredentialAsync(savedCred);
+                        CloseUtilityTab(tag);
+                    };
+                    ctrl.CancelRequested += () =>
+                    {
+                        CloseUtilityTab(tag);
+                    };
+                    return ctrl;
+                });
+                return;
+            }
+
+            if (ConnectionsPageArea.Visibility == Visibility.Visible)
+                _previousViewNavigator = () => OnNavConnectionsClick(this, new RoutedEventArgs());
+            else if (LogsPageArea.Visibility == Visibility.Visible)
+                _previousViewNavigator = () => OnNavLogsClick(this, new RoutedEventArgs());
+            else if (SettingsPageArea.Visibility == Visibility.Visible)
+                _previousViewNavigator = () => OnNavSettingsClick(this, new RoutedEventArgs());
+            else
+                _previousViewNavigator = () => ReturnToWorkspace();
+
+            HideAllPages();
+            CredentialEditControl.LoadCredential(existing, crypto);
+            CredentialEditPageArea.Visibility = Visibility.Visible;
+            LogEngine.Instance.Info("UI", $"Navigated to Credential Edit page (Editing: '{existing?.Title ?? "New"}').");
         }
-
-        if (ConnectionsPageArea.Visibility == Visibility.Visible)
-            _previousViewNavigator = () => OnNavConnectionsClick(this, new RoutedEventArgs());
-        else
-            _previousViewNavigator = () => ReturnToWorkspace();
-
-        HideAllPages();
-        CredentialEditControl.LoadCredential(existing, crypto);
-        CredentialEditPageArea.Visibility = Visibility.Visible;
-        LogEngine.Instance.Info("UI", $"Navigated to Credential Edit page (Editing: {existing?.Title ?? "New"}).");
+        catch (Exception ex)
+        {
+            LogEngine.Instance.Error("UI", $"Error navigating to Credential Edit page for '{existing?.Title ?? "New"}'", ex);
+        }
     }
 
     private void ReturnToPreviousView()
@@ -332,7 +354,16 @@ public partial class MainWindow : Window
 
     private void OnSidebarTabPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        ReturnToWorkspace();
+        DependencyObject? current = e.OriginalSource as DependencyObject;
+        while (current != null && current != SidebarTabControl)
+        {
+            if (current is TabItem or TabPanel)
+            {
+                ReturnToWorkspace();
+                return;
+            }
+            current = VisualTreeHelper.GetParent(current);
+        }
     }
 
     private void ReturnToWorkspace()
