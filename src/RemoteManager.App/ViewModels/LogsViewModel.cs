@@ -319,7 +319,7 @@ public partial class LogsViewModel : ObservableObject
     internal Action<Action> SafeDispatch { get; set; } = action =>
     {
         var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher != null && !dispatcher.CheckAccess())
+        if (dispatcher != null && dispatcher.Thread.IsAlive && !dispatcher.HasShutdownStarted && !dispatcher.CheckAccess())
         {
             dispatcher.BeginInvoke(action);
         }

@@ -351,42 +351,25 @@ public partial class MainViewModel : ObservableObject
                     };
                     vncControl.Disconnected += () =>
                     {
-                        var disp = Application.Current?.Dispatcher;
-                        if (disp != null && !disp.CheckAccess())
-                        {
-                            disp.Invoke(() =>
-                            {
-                                vncSession.Status = "Disconnected";
-                                vncSession.IsConnected = false;
-                            });
-                        }
-                        else
+                        SafeDispatch(() =>
                         {
                             vncSession.Status = "Disconnected";
                             vncSession.IsConnected = false;
-                        }
+                        });
                     };
                     vncControl.Error += (err) =>
                     {
-                        var disp = Application.Current?.Dispatcher;
-                        if (disp != null && !disp.CheckAccess())
-                        {
-                            disp.Invoke(() =>
-                            {
-                                vncSession.Status = $"Error: {err}";
-                            });
-                        }
-                        else
+                        SafeDispatch(() =>
                         {
                             vncSession.Status = $"Error: {err}";
-                        }
+                        });
                     };
                 }
 
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(300); // Give control time to attach
-                    Application.Current?.Dispatcher?.Invoke(() =>
+                    SafeDispatch(() =>
                     {
                         try
                         {
@@ -415,60 +398,34 @@ public partial class MainViewModel : ObservableObject
         {
             rdpControl.Connected += () =>
             {
-                var disp = Application.Current?.Dispatcher;
-                if (disp != null && !disp.CheckAccess())
-                {
-                    disp.Invoke(() =>
-                    {
-                        session.Status = "Connected";
-                        session.IsConnected = true;
-                    });
-                }
-                else
+                SafeDispatch(() =>
                 {
                     session.Status = "Connected";
                     session.IsConnected = true;
-                }
+                });
             };
 
             rdpControl.Disconnected += (desc, discReason, extReason) =>
             {
-                var disp = Application.Current?.Dispatcher;
                 string status = extReason == 5
                     ? "Disconnected (Another user connected)"
                     : "Disconnected";
 
-                if (disp != null && !disp.CheckAccess())
-                {
-                    disp.Invoke(() =>
-                    {
-                        session.Status = status;
-                        session.IsConnected = false;
-                    });
-                }
-                else
+                SafeDispatch(() =>
                 {
                     session.Status = status;
                     session.IsConnected = false;
-                }
+                });
 
                 LogEngine.Instance.Warn("Session", $"RDP session '{session.Title}' disconnected (Reason: {discReason}, Extended: {extReason}): {desc}");
             };
 
             rdpControl.DisconnectRequested += () =>
             {
-                var disp = Application.Current?.Dispatcher;
-                if (disp != null && !disp.CheckAccess())
-                {
-                    disp.Invoke(() =>
-                    {
-                        _ = session.CloseCommand.ExecuteAsync(null);
-                    });
-                }
-                else
+                SafeDispatch(() =>
                 {
                     _ = session.CloseCommand.ExecuteAsync(null);
-                }
+                });
             };
         }
 
@@ -775,4 +732,17 @@ public partial class MainViewModel : ObservableObject
         var cred = Credentials.FirstOrDefault(c => c.Id == credentialId.Value);
         return cred != null ? cred.Title : "Unknown";
     }
+
+    internal Action<Action> SafeDispatch { get; set; } = action =>
+    {
+        var disp = Application.Current?.Dispatcher;
+        if (disp != null && disp.Thread.IsAlive && !disp.HasShutdownStarted && !disp.CheckAccess())
+        {
+            disp.BeginInvoke(action);
+        }
+        else
+        {
+            action();
+        }
+    };
 }

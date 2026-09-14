@@ -264,24 +264,24 @@ Overall Branch Coverage : 88.12%  (653 / 741 branches)
 
 ## 🤖 Continuous Integration & Automated Releases (GitHub Actions)
 
-An automated production CI/CD workflow is included in [`.github/workflows/build-and-release.yml`](.github/workflows/build-and-release.yml), running on Node.js 24 with isolated, modular jobs and strict timeouts:
+An automated production CI/CD workflow is included in [`.github/workflows/build-and-release.yml`](.github/workflows/build-and-release.yml), running on Node.js 24 with a visual modular DAG dependency diagram and strict job timeouts:
+
+```text
+                  ┌──> Job 2: Build Portable ZIP (win-x64) ──┐
+Job 1: Run Tests ─┤                                          ├──> Job 4: Bundle & Checksums ──> Job 5: Publish Release (Tags)
+                  └──> Job 3: Build MSI Installer (WiX v5) ──┘
+```
 
 - **Job 1: `test` (Unit & Integration Tests)**:
-  - Runs on Windows latest with Node.js 24 and .NET 8.0 SDK
-  - Executes all 171 automated unit tests (`dotnet test`) with a 15-minute strict timeout to prevent hangs
-  - Delivers fast feedback on all pull requests and pushes to `main`
-
-- **Job 2: `package` (Build & Package Artifacts)**:
-  - Runs automatically after `test` succeeds
-  - Restores tools and WiX Toolset v5 UI extensions
-  - Compiles and publishes self-contained win-x64 binaries
-  - Creates portable ZIP, compiles the MSI installer, and generates SHA-256 checksums
-  - Uploads artifacts directly to the workflow run
-
-- **Job 3: `release` (Publish GitHub Release)**:
-  - Runs automatically on version tags (`v*`) or manual `workflow_dispatch` trigger
-  - Downloads build artifacts from `package` job
-  - Generates release notes and publishes the GitHub Release with portable ZIP, MSI installer, and checksums
+  - Executes all 171 automated unit tests (`dotnet test`) with a 15-minute strict timeout to deliver fast feedback on PRs and pushes.
+- **Job 2: `build-portable` (Portable ZIP)**:
+  - Runs in parallel after `test` succeeds; publishes the self-contained single-file win-x64 binary and portable ZIP.
+- **Job 3: `build-installer` (WiX v5 MSI)**:
+  - Runs in parallel after `test` succeeds; compiles the native WiX Toolset v5 Windows Installer (`.msi`).
+- **Job 4: `package` (Bundle & Checksums)**:
+  - Merges build artifacts, computes SHA-256 verification hashes, and uploads the distribution bundle.
+- **Job 5: `release` (Publish GitHub Release)**:
+  - Triggers on version tags (`v*`) or manual `workflow_dispatch` release; attaches the release packages and auto-generates release notes.
 
 ## 🤝 Contributing & Community
 

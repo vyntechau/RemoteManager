@@ -267,7 +267,7 @@ public partial class ConnectionsViewModel : ObservableObject
     internal Action<Action> SafeDispatch { get; set; } = action =>
     {
         var disp = DispatcherProvider();
-        if (disp != null && !disp.CheckAccess())
+        if (disp != null && disp.Thread.IsAlive && !disp.HasShutdownStarted && !disp.CheckAccess())
         {
             _ = disp.BeginInvoke(action);
         }

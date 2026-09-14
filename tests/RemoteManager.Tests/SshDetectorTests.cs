@@ -108,12 +108,6 @@ public class SshDetectorTests
                 Tag = "About",
                 Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Info24 }
             };
-            if (Application.Current == null)
-            {
-                var app = new Application();
-                app.Resources.MergedDictionaries.Add(new Wpf.Ui.Markup.ThemesDictionary { Theme = Wpf.Ui.Appearance.ApplicationTheme.Dark });
-                app.Resources.MergedDictionaries.Add(new Wpf.Ui.Markup.ControlsDictionary());
-            }
 
             nav.FooterMenuItems.Add(sItem);
             nav.FooterMenuItems.Add(aItem);

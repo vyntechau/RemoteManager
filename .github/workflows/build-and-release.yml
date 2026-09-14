@@ -33,11 +33,11 @@ permissions:
 
 jobs:
   # ============================================================================
-  # JOB 1: RUN UNIT TESTS
+  # JOB 1: RUN UNIT & INTEGRATION TESTS
   # Fast feedback on pull requests and pushes, with strict timeout to prevent hangs.
   # ============================================================================
   test:
-    name: Run Unit Tests
+    name: Run Tests
     runs-on: windows-latest
     timeout-minutes: 15
 
@@ -69,11 +69,11 @@ jobs:
           dotnet test tests/RemoteManager.Tests/RemoteManager.Tests.csproj --configuration Release --nologo --verbosity normal
 
   # ============================================================================
-  # JOB 2: BUILD & PACKAGE (PORTABLE ZIP & MSI INSTALLER)
-  # Runs after tests pass to generate release packages and upload build artifacts.
+  # JOB 2: BUILD PORTABLE ZIP (WIN-X64)
+  # Compiles self-contained executable and produces portable ZIP archive.
   # ============================================================================
-  package:
-    name: Build & Package (Portable ZIP & MSI)
+  build-portable:
+    name: Build Portable ZIP
     needs: test
     runs-on: windows-latest
     timeout-minutes: 20
@@ -117,7 +117,73 @@ jobs:
               $ver = "1.0.0"
             }
           }
-          # Strip any leading 'v'
+          $ver = $ver.TrimStart('v')
+          Write-Host "Resolved Build Version: $ver"
+          echo "BUILD_VERSION=$ver" >> $env:GITHUB_ENV
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: Build Portable Archive (ZIP)
+        shell: pwsh
+        run: |
+          .\build.ps1 -Target Exe -SkipTests -Version "${{ env.BUILD_VERSION }}" -OutputDir artifacts
+
+      - name: Upload Portable ZIP Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemoteManager-portable-zip
+          path: artifacts/RemoteManager-*-portable.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  # ============================================================================
+  # JOB 3: BUILD MSI INSTALLER (WIX TOOLSET V5)
+  # Compiles WiX v5 Windows Installer (.msi) package.
+  # ============================================================================
+  build-installer:
+    name: Build MSI Installer
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.versioning.outputs.version }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Determine Version
+        id: versioning
+        shell: pwsh
+        run: |
+          $ver = "${{ github.event.inputs.version_override }}"
+          if ([string]::IsNullOrWhiteSpace($ver)) {
+            $ref = "${{ github.ref }}"
+            if ($ref -like "refs/tags/v*") {
+              $ver = $ref.Substring(11) # Remove refs/tags/v
+            } else {
+              $ver = "1.0.0"
+            }
+          }
           $ver = $ver.TrimStart('v')
           Write-Host "Resolved Build Version: $ver"
           echo "BUILD_VERSION=$ver" >> $env:GITHUB_ENV
@@ -129,15 +195,74 @@ jobs:
           dotnet tool restore
           dotnet wix extension add -g WixToolset.UI.wixext/5.0.2
 
-      - name: Build Packages (Portable ZIP & MSI)
+      - name: Build Windows Installer (MSI)
         shell: pwsh
         run: |
-          .\build.ps1 -Target Package -SkipTests -Version "${{ env.BUILD_VERSION }}" -OutputDir artifacts
+          .\build.ps1 -Target Msi -SkipTests -Version "${{ env.BUILD_VERSION }}" -OutputDir artifacts
 
-      - name: Upload Build Artifacts
+      - name: Upload MSI Installer Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RemoteManager-v${{ env.BUILD_VERSION }}-windows
+          name: RemoteManager-msi-installer
+          path: artifacts/RemoteManager-*-Setup.msi
+          if-no-files-found: error
+          retention-days: 14
+
+  # ============================================================================
+  # JOB 4: BUNDLE & CHECKSUMS
+  # Aggregates built packages and generates joint SHA-256 verification hashes.
+  # ============================================================================
+  package:
+    name: Bundle & Checksums
+    needs: [build-portable, build-installer]
+    runs-on: windows-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Resolve Version Output
+        id: version
+        shell: pwsh
+        run: |
+          $ver = "${{ needs.build-portable.outputs.version }}"
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: Download Portable ZIP Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: RemoteManager-portable-zip
+          path: artifacts
+
+      - name: Download MSI Installer Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: RemoteManager-msi-installer
+          path: artifacts
+
+      - name: Generate SHA-256 Checksums
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path artifacts -File | Where-Object { $_.Name -ne "checksums.txt" }
+          $entries = @()
+          foreach ($f in $files) {
+            $hash = (Get-FileHash -Path $f.FullName -Algorithm SHA256).Hash.ToLower()
+            $line = "$hash  $($f.Name)"
+            $entries += $line
+            Write-Host "  $line"
+          }
+          $entries | Out-File -FilePath artifacts/checksums.txt -Encoding utf8
+          Write-Host "Checksums written successfully."
+
+      - name: Upload Complete Distribution Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemoteManager-v${{ needs.build-portable.outputs.version }}-windows
           path: |
             artifacts/RemoteManager-*.zip
             artifacts/RemoteManager-*.msi
@@ -146,12 +271,12 @@ jobs:
           retention-days: 14
 
   # ============================================================================
-  # JOB 3: PUBLISH GITHUB RELEASE
-  # Triggers only on version tags (e.g. v1.0.0) or explicit workflow_dispatch release.
+  # JOB 5: PUBLISH GITHUB RELEASE
+  # Triggers on version tags (e.g. v1.0.0) or explicit workflow_dispatch release.
   # ============================================================================
   release:
     name: Publish GitHub Release
-    needs: [test, package]
+    needs: package
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == true
     runs-on: windows-latest
     timeout-minutes: 10
