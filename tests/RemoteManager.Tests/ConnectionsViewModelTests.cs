@@ -8,6 +8,7 @@ using RemoteManager.Data;
 using RemoteManager.Data.Security;
 using RemoteManager.Protocols.Rdp;
 using Xunit;
+using Wpf.Ui.Controls;
 using ProtocolType = RemoteManager.Core.Models.ProtocolType;
 
 namespace RemoteManager.Tests;
@@ -504,6 +505,253 @@ public class ConnectionsViewModelTests : IDisposable
         await _vm.EditConnectionAsync("invalid_param");
         Assert.Null(edited);
     }
+
+    [Fact]
+    public async Task ConnectionsViewModel_Bookmarking_AlwaysPlacesBookmarkedOnTop()
+    {
+        await _db.InitializeAsync();
+        var c1 = new ConnectionItem { Name = "Server 1", Host = "10.0.0.1", IsBookmarked = false, SortOrder = 0 };
+        var c2 = new ConnectionItem { Name = "Server 2", Host = "10.0.0.2", IsBookmarked = false, SortOrder = 1 };
+        var c3 = new ConnectionItem { Name = "Server 3", Host = "10.0.0.3", IsBookmarked = false, SortOrder = 2 };
+
+        await _mainVm.SaveAndReloadConnectionAsync(c1);
+        await _mainVm.SaveAndReloadConnectionAsync(c2);
+        await _mainVm.SaveAndReloadConnectionAsync(c3);
+
+        _vm.SyncConnections(_mainVm.Connections, Array.Empty<Credential>());
+        Assert.Equal(0, _vm.BookmarkedCount);
+        Assert.Equal("Server 1", _vm.FilteredCards[0].DisplayName);
+
+        // Bookmark Server 3
+        var card3 = _vm.FilteredCards.First(c => c.DisplayName == "Server 3");
+        await _vm.ToggleBookmarkAsync(card3);
+
+        Assert.Equal(1, _vm.BookmarkedCount);
+        // Server 3 must now be at the top!
+        Assert.Equal("Server 3", _vm.FilteredCards[0].DisplayName);
+        Assert.True(_vm.FilteredCards[0].IsBookmarked);
+
+        // Sidebar filtered connections must also have Server 3 on top
+        Assert.Equal("Server 3", _mainVm.FilteredConnections[0].DisplayName);
+        Assert.True(_mainVm.FilteredConnections[0].IsBookmarked);
+
+        // Now bookmark Server 2 as well
+        var card2 = _vm.FilteredCards.First(c => c.DisplayName == "Server 2");
+        await _vm.ToggleBookmarkAsync(card2);
+
+        Assert.Equal(2, _vm.BookmarkedCount);
+        // Both bookmarked servers are before Server 1
+        Assert.True(_vm.FilteredCards[0].IsBookmarked);
+        Assert.True(_vm.FilteredCards[1].IsBookmarked);
+        Assert.False(_vm.FilteredCards[2].IsBookmarked);
+        Assert.Equal("Server 1", _vm.FilteredCards[2].DisplayName);
+
+        // Test Filter: "Bookmarked"
+        _vm.SetProtocolFilter("Bookmarked");
+        Assert.True(_vm.IsFilterBookmarked);
+        Assert.Equal(2, _vm.FilteredCards.Count);
+        Assert.All(_vm.FilteredCards, c => Assert.True(c.IsBookmarked));
+
+        // Unbookmark Server 3
+        var cardToUnbookmark = _vm.FilteredCards.First(c => c.DisplayName == "Server 3");
+        await _vm.ToggleBookmarkAsync(cardToUnbookmark);
+
+        _vm.SetProtocolFilter("All");
+        Assert.Equal(1, _vm.BookmarkedCount);
+        Assert.Equal("Server 2", _vm.FilteredCards[0].DisplayName);
+    }
+
+    [Fact]
+    public async Task ConnectionsViewModel_DragDropReorder_MaintainsCustomSort()
+    {
+        await _db.InitializeAsync();
+        var c1 = new ConnectionItem { Name = "Alpha", Host = "10.0.0.1", IsBookmarked = true, SortOrder = 0 };
+        var c2 = new ConnectionItem { Name = "Beta", Host = "10.0.0.2", IsBookmarked = true, SortOrder = 1 };
+        var c3 = new ConnectionItem { Name = "Gamma", Host = "10.0.0.3", IsBookmarked = false, SortOrder = 2 };
+
+        await _mainVm.SaveAndReloadConnectionAsync(c1);
+        await _mainVm.SaveAndReloadConnectionAsync(c2);
+        await _mainVm.SaveAndReloadConnectionAsync(c3);
+
+        _vm.SyncConnections(_mainVm.Connections, Array.Empty<Credential>());
+
+        // Reorder Beta (index 1) to before Alpha (index 0)
+        var itemAlpha = _mainVm.Connections.First(c => c.Name == "Alpha");
+        var itemBeta = _mainVm.Connections.First(c => c.Name == "Beta");
+
+        await _mainVm.ReorderConnectionItemAsync(itemBeta, itemAlpha);
+
+        // Beta is now first
+        Assert.Equal("Beta", _mainVm.Connections[0].DisplayName);
+        Assert.Equal("Alpha", _mainVm.Connections[1].DisplayName);
+        Assert.Equal("Gamma", _mainVm.Connections[2].DisplayName);
+
+        // Check in ConnectionsVM
+        Assert.Equal("Beta", _vm.FilteredCards[0].DisplayName);
+        Assert.Equal("Alpha", _vm.FilteredCards[1].DisplayName);
+
+        // Verify persisted to database
+        var fromDb = await _db.GetAllConnectionsAsync();
+        Assert.Equal("Beta", fromDb[0].DisplayName);
+        Assert.Equal("Alpha", fromDb[1].DisplayName);
+    }
+
+    [Fact]
+    public void ConnectionsViewModel_MultiCheckboxFilter_FiltersMultipleProtocols()
+    {
+        var items = new List<ConnectionItem>
+        {
+            new() { Name = "RDP 1", Host = "10.0.0.1", Protocol = ProtocolType.RDP },
+            new() { Name = "SSH 1", Host = "10.0.0.2", Protocol = ProtocolType.SSH },
+            new() { Name = "VNC 1", Host = "10.0.0.3", Protocol = ProtocolType.VNC },
+            new() { Name = "Web 1", Host = "10.0.0.4", Protocol = ProtocolType.Web },
+            new() { Name = "SSH 2", Host = "10.0.0.5", Protocol = ProtocolType.SSH },
+        };
+
+        _vm.SyncConnections(items, Array.Empty<Credential>());
+        Assert.Equal(5, _vm.TotalCount);
+        Assert.True(_vm.IsFilterAll);
+        Assert.False(_vm.HasActiveFilter);
+
+        // Check RDP and SSH together (multi-selection)
+        _vm.IsFilterRdp = true;
+        _vm.IsFilterSsh = true;
+
+        Assert.False(_vm.IsFilterAll);
+        Assert.True(_vm.HasActiveFilter);
+        Assert.Equal(3, _vm.FilteredCards.Count);
+        Assert.Contains(_vm.FilteredCards, c => c.DisplayName == "RDP 1");
+        Assert.Contains(_vm.FilteredCards, c => c.DisplayName == "SSH 1");
+        Assert.Contains(_vm.FilteredCards, c => c.DisplayName == "SSH 2");
+        Assert.DoesNotContain(_vm.FilteredCards, c => c.DisplayName == "VNC 1");
+        Assert.DoesNotContain(_vm.FilteredCards, c => c.DisplayName == "Web 1");
+        Assert.Equal("2", _vm.ActiveFilterBadgeText);
+
+        // Reset
+        _vm.ResetFiltersCommand.Execute(null);
+        Assert.True(_vm.IsFilterAll);
+        Assert.False(_vm.IsFilterRdp);
+        Assert.False(_vm.IsFilterSsh);
+        Assert.False(_vm.HasActiveFilter);
+        Assert.Equal(5, _vm.FilteredCards.Count);
+    }
+
+    [Fact]
+    public void ConnectionsViewModel_MultiCheckboxFilter_CombinesProtocolAndBookmark()
+    {
+        var items = new List<ConnectionItem>
+        {
+            new() { Name = "RDP Starred", Host = "10.0.0.1", Protocol = ProtocolType.RDP, IsBookmarked = true },
+            new() { Name = "RDP Normal", Host = "10.0.0.2", Protocol = ProtocolType.RDP, IsBookmarked = false },
+            new() { Name = "SSH Starred", Host = "10.0.0.3", Protocol = ProtocolType.SSH, IsBookmarked = true },
+            new() { Name = "SSH Normal", Host = "10.0.0.4", Protocol = ProtocolType.SSH, IsBookmarked = false }
+        };
+
+        _vm.SyncConnections(items, Array.Empty<Credential>());
+
+        // Filter: RDP AND Bookmarked
+        _vm.IsFilterRdp = true;
+        _vm.IsFilterBookmarked = true;
+
+        Assert.Single(_vm.FilteredCards);
+        Assert.Equal("RDP Starred", _vm.FilteredCards[0].DisplayName);
+
+        // Uncheck RDP -> shows all Bookmarked
+        _vm.IsFilterRdp = false;
+        Assert.Equal(2, _vm.FilteredCards.Count);
+        Assert.All(_vm.FilteredCards, c => Assert.True(c.IsBookmarked));
+
+        // Check All -> resets Bookmarked
+        _vm.IsFilterAll = true;
+        Assert.False(_vm.IsFilterBookmarked);
+        Assert.Equal(4, _vm.FilteredCards.Count);
+    }
+
+    [Fact]
+    public void ConnectionsViewModel_MultiCheckboxFilter_OnlineOnlyFiltering()
+    {
+        var items = new List<ConnectionItem>
+        {
+            new() { Name = "Server A", Host = "10.0.0.1", Protocol = ProtocolType.RDP },
+            new() { Name = "Server B", Host = "10.0.0.2", Protocol = ProtocolType.SSH }
+        };
+
+        _vm.SyncConnections(items, Array.Empty<Credential>());
+
+        // Mark Server A as online
+        _vm.FilteredCards[0].PingStatus = ConnectionPingStatus.Online;
+        _vm.FilteredCards[1].PingStatus = ConnectionPingStatus.Offline;
+
+        _vm.IsFilterOnlineOnly = true;
+        Assert.Single(_vm.FilteredCards);
+        Assert.Equal("Server A", _vm.FilteredCards[0].DisplayName);
+
+        _vm.IsFilterOnlineOnly = false;
+        Assert.True(_vm.IsFilterAll);
+        Assert.Equal(2, _vm.FilteredCards.Count);
+    }
+
+    [Fact]
+    public void ConnectionsViewModel_SortByColumn_TogglesOrderAndUpdatesHeaders()
+    {
+        var items = new List<ConnectionItem>
+        {
+            new() { Name = "Beta", Host = "192.168.1.2", Protocol = ProtocolType.SSH },
+            new() { Name = "Alpha", Host = "192.168.1.1", Protocol = ProtocolType.RDP },
+            new() { Name = "Gamma", Host = "192.168.1.3", Protocol = ProtocolType.VNC }
+        };
+
+        _vm.SyncConnections(items, Array.Empty<Credential>());
+
+        // 0. Initial state shows ChevronUpDown16 (the dual caret ^v icon for unsorted columns)
+        Assert.Equal(SymbolRegular.ChevronUpDown16, _vm.NameSortIcon);
+        Assert.Equal(SymbolRegular.ChevronUpDown16, _vm.ProtocolSortIcon);
+        Assert.Equal("Server Name ^v", _vm.NameHeader);
+        Assert.Equal("Protocol ^v", _vm.ProtocolHeader);
+
+        // 1. Sort by DisplayName -> Ascending (ChevronUp16 / ^, Alpha, Beta, Gamma)
+        _vm.SortByColumn("DisplayName");
+        Assert.Equal("DisplayName", _vm.CurrentSortColumn);
+        Assert.True(_vm.IsSortAscending);
+        Assert.Equal(SymbolRegular.ChevronUp16, _vm.NameSortIcon);
+        Assert.Equal("Server Name ^", _vm.NameHeader);
+        Assert.Equal(SymbolRegular.ChevronUpDown16, _vm.ProtocolSortIcon); // Unsorted columns remain ChevronUpDown16
+        Assert.Equal("Alpha", _vm.FilteredCards[0].DisplayName);
+        Assert.Equal("Gamma", _vm.FilteredCards[2].DisplayName);
+
+        // 2. Click DisplayName again -> Descending (ChevronDown16 / v, Gamma, Beta, Alpha)
+        _vm.SortByColumn("DisplayName");
+        Assert.False(_vm.IsSortAscending);
+        Assert.Equal(SymbolRegular.ChevronDown16, _vm.NameSortIcon);
+        Assert.Equal("Server Name v", _vm.NameHeader);
+        Assert.Equal("Gamma", _vm.FilteredCards[0].DisplayName);
+        Assert.Equal("Alpha", _vm.FilteredCards[2].DisplayName);
+
+        // 3. Click Protocol -> Ascending (ChevronUp16, resets DisplayName to ChevronUpDown16)
+        _vm.SortByColumn("Protocol");
+        Assert.Equal("Protocol", _vm.CurrentSortColumn);
+        Assert.True(_vm.IsSortAscending);
+        Assert.Equal(SymbolRegular.ChevronUp16, _vm.ProtocolSortIcon);
+        Assert.Equal("Protocol ^", _vm.ProtocolHeader);
+        Assert.Equal(SymbolRegular.ChevronUpDown16, _vm.NameSortIcon); // Resets back to dual chevron
+        Assert.Equal("Server Name ^v", _vm.NameHeader);
+
+        // 4. Click Endpoint -> Ascending
+        _vm.SortByColumn("Endpoint");
+        Assert.Equal("Endpoint", _vm.CurrentSortColumn);
+        Assert.True(_vm.IsSortAscending);
+        Assert.Equal(SymbolRegular.ChevronUp16, _vm.EndpointSortIcon);
+        Assert.Equal("Endpoint ^", _vm.EndpointHeader);
+
+        // 5. Selecting from ComboBox updates current sort
+        _vm.SelectedSortOption = "Name (A-Z)";
+        Assert.Equal("DisplayName", _vm.CurrentSortColumn);
+        Assert.True(_vm.IsSortAscending);
+        Assert.Equal(SymbolRegular.ChevronUp16, _vm.NameSortIcon);
+        Assert.Equal("Server Name ^", _vm.NameHeader);
+    }
 }
+
+
 
 

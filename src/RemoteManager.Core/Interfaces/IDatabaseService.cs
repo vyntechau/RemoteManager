@@ -10,6 +10,7 @@ public interface IDatabaseService
     Task<List<ConnectionItem>> GetAllConnectionsAsync();
     Task<ConnectionItem?> GetConnectionByIdAsync(Guid id);
     Task SaveConnectionAsync(ConnectionItem connection);
+    Task UpdateConnectionsOrderAsync(IEnumerable<ConnectionItem> connections);
     Task DeleteConnectionAsync(Guid id);
 
     // Credentials

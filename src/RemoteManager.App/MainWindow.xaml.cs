@@ -571,4 +571,103 @@ public partial class MainWindow : Window
             e.Handled = true;
         }
     }
+
+    #region Sidebar Drag and Drop Sorting
+    private System.Windows.Point _sidebarDragStartPoint;
+    private ConnectionItem? _sidebarDraggedItem;
+
+    private void OnSidebarItemPreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (IsInteractiveControl(e.OriginalSource as DependencyObject))
+        {
+            _sidebarDraggedItem = null;
+            return;
+        }
+
+        _sidebarDragStartPoint = e.GetPosition(null);
+        _sidebarDraggedItem = FindItemFromVisualTree<ListBoxItem>(e.OriginalSource as DependencyObject)?.DataContext as ConnectionItem;
+    }
+
+    private void OnSidebarItemMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (e.LeftButton != System.Windows.Input.MouseButtonState.Pressed || _sidebarDraggedItem == null)
+            return;
+
+        System.Windows.Point currentPos = e.GetPosition(null);
+        System.Windows.Vector diff = _sidebarDragStartPoint - currentPos;
+
+        if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+            Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+        {
+            var itemToDrag = _sidebarDraggedItem;
+            _sidebarDraggedItem = null;
+            DragDrop.DoDragDrop((DependencyObject)sender, new DataObject("RemoteManager.ConnectionItem", itemToDrag), DragDropEffects.Move);
+        }
+    }
+
+    private void OnSidebarItemDragOver(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent("RemoteManager.ConnectionItem"))
+        {
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+        }
+        else
+        {
+            e.Effects = DragDropEffects.None;
+        }
+    }
+
+    private async void OnSidebarItemDrop(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent("RemoteManager.ConnectionItem"))
+            return;
+
+        var sourceItem = e.Data.GetData("RemoteManager.ConnectionItem") as ConnectionItem;
+        if (sourceItem == null) return;
+
+        var targetListBoxItem = FindItemFromVisualTree<ListBoxItem>(e.OriginalSource as DependencyObject);
+        var targetItem = targetListBoxItem?.DataContext as ConnectionItem;
+
+        if (targetItem != null && targetItem.Id != sourceItem.Id)
+        {
+            await _viewModel.ReorderConnectionItemAsync(sourceItem, targetItem);
+        }
+    }
+
+    private static T? FindItemFromVisualTree<T>(DependencyObject? dep) where T : DependencyObject
+    {
+        while (dep != null)
+        {
+            if (dep is T match) return match;
+            if (dep is Visual || dep is System.Windows.Media.Media3D.Visual3D)
+            {
+                dep = VisualTreeHelper.GetParent(dep);
+            }
+            else
+            {
+                dep = LogicalTreeHelper.GetParent(dep);
+            }
+        }
+        return null;
+    }
+
+    private static bool IsInteractiveControl(DependencyObject? dep)
+    {
+        while (dep != null)
+        {
+            if (dep is ButtonBase || dep is TextBox || dep is PasswordBox || dep is ComboBox)
+                return true;
+            if (dep is Visual || dep is System.Windows.Media.Media3D.Visual3D)
+            {
+                dep = VisualTreeHelper.GetParent(dep);
+            }
+            else
+            {
+                dep = LogicalTreeHelper.GetParent(dep);
+            }
+        }
+        return false;
+    }
+    #endregion
 }

@@ -315,6 +315,7 @@ public class GitHubUpdateServiceTests
         public Task<List<ConnectionItem>> GetAllConnectionsAsync() => Task.FromResult(new List<ConnectionItem>());
         public Task<ConnectionItem?> GetConnectionByIdAsync(Guid id) => Task.FromResult<ConnectionItem?>(null);
         public Task SaveConnectionAsync(ConnectionItem item) => Task.CompletedTask;
+        public Task UpdateConnectionsOrderAsync(IEnumerable<ConnectionItem> connections) => Task.CompletedTask;
         public Task DeleteConnectionAsync(Guid id) => Task.CompletedTask;
         public Task<List<Credential>> GetAllCredentialsAsync() => Task.FromResult(new List<Credential>());
         public Task<Credential?> GetCredentialByIdAsync(Guid id) => Task.FromResult<Credential?>(null);

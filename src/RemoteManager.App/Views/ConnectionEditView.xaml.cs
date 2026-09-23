@@ -85,6 +85,7 @@ public partial class ConnectionEditView : UserControl
                 if (NameInput != null) NameInput.Text = existing.Name;
                 if (HostInput != null) HostInput.Text = existing.Host;
                 if (PortInput != null) PortInput.Text = existing.Port.ToString();
+                if (IsBookmarkedCheckbox != null) IsBookmarkedCheckbox.IsChecked = existing.IsBookmarked;
                 _selectedProtocol = existing.Protocol;
                 _selectedDisplayMode = existing.DisplayMode;
 
@@ -548,6 +549,8 @@ public partial class ConnectionEditView : UserControl
             Protocol = _selectedProtocol,
             DisplayMode = _selectedDisplayMode,
             CredentialId = selectedCredId,
+            IsBookmarked = IsBookmarkedCheckbox?.IsChecked == true,
+            SortOrder = Existing?.SortOrder ?? 0,
             CreatedAt = Existing?.CreatedAt ?? DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

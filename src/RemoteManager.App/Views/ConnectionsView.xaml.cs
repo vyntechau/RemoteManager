@@ -52,4 +52,66 @@ public partial class ConnectionsView : UserControl
             _ = vm.ConnectCardAsync(card);
         }
     }
+
+    private void OnColumnHeaderClick(object sender, RoutedEventArgs e)
+    {
+        GridViewColumnHeader? header = e.OriginalSource as GridViewColumnHeader;
+        if (header == null && e.OriginalSource is DependencyObject dep)
+        {
+            DependencyObject? curr = dep;
+            while (curr != null && curr is not GridViewColumnHeader)
+            {
+                curr = VisualTreeHelper.GetParent(curr);
+            }
+            header = curr as GridViewColumnHeader;
+        }
+
+        if (header?.Column == null) return;
+
+        string? columnKey = null;
+        if (header.Column.Header is FrameworkElement fe && fe.Tag is string tag)
+        {
+            columnKey = tag;
+        }
+        else if (header.Tag is string headerTag)
+        {
+            columnKey = headerTag;
+        }
+        else if (sender is ListView lv && lv.View is GridView gv)
+        {
+            int colIdx = gv.Columns.IndexOf(header.Column);
+            columnKey = colIdx switch
+            {
+                0 => "Bookmark",
+                1 => "Status",
+                2 => "Protocol",
+                3 => "DisplayName",
+                4 => "Endpoint",
+                5 => "Credential",
+                6 => "DisplayMode",
+                _ => null
+            };
+        }
+        else if (header.Column.Header is string str)
+        {
+            columnKey = str switch
+            {
+                var s when s.StartsWith("★") => "Bookmark",
+                var s when s.StartsWith("Status") => "Status",
+                var s when s.StartsWith("Protocol") => "Protocol",
+                var s when s.StartsWith("Server Name") => "DisplayName",
+                var s when s.StartsWith("Endpoint") || s.StartsWith("Host") => "Endpoint",
+                var s when s.StartsWith("Credential") => "Credential",
+                var s when s.StartsWith("Display Mode") => "DisplayMode",
+                _ => null
+            };
+        }
+
+        if (string.Equals(columnKey, "Actions", StringComparison.OrdinalIgnoreCase)) return;
+
+        if (!string.IsNullOrEmpty(columnKey) && DataContext is ConnectionsViewModel vm)
+        {
+            vm.SortByColumn(columnKey);
+        }
+    }
 }

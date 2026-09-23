@@ -176,90 +176,171 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Connections List -->
-                                <ListBox Grid.Row="1" ItemsSource="{Binding FilteredConnections}"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                         BorderThickness="0" Background="Transparent" Padding="4,2">
-                                    <ListBox.ItemContainerStyle>
-                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                            <Setter Property="Padding" Value="0"/>
-                                            <Setter Property="Margin" Value="2,1"/>
-                                            <Setter Property="Cursor" Value="Hand"/>
-                                        </Style>
-                                    </ListBox.ItemContainerStyle>
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Padding="8,6" Background="Transparent" CornerRadius="4"
-                                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    ToolTip="Double-click to connect • Right-click for options">
-                                                <Border.InputBindings>
-                                                    <MouseBinding MouseAction="LeftDoubleClick"
-                                                                  Command="{Binding DataContext.ConnectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                  CommandParameter="{Binding}"/>
-                                                </Border.InputBindings>
-                                                <Border.ContextMenu>
-                                                    <ContextMenu>
-                                                        <MenuItem Header="Connect (Embedded Tab)"
-                                                                  Command="{Binding PlacementTarget.Tag.ConnectTabbedCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                                        <MenuItem Header="Connect (Fullscreen)"
-                                                                  Command="{Binding PlacementTarget.Tag.ConnectFullscreenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                                        <MenuItem Header="Connect (Native MSTSC Window)"
-                                                                  Command="{Binding PlacementTarget.Tag.ConnectExternalCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                                        <Separator/>
-                                                        <MenuItem Header="Edit"
-                                                                  Command="{Binding PlacementTarget.Tag.EditConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                                        <MenuItem Header="Delete"
-                                                                  Command="{Binding PlacementTarget.Tag.DeleteConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                                    </ContextMenu>
-                                                </Border.ContextMenu>
+                                 <!-- Connections List -->
+                                 <ListBox x:Name="SidebarConnectionsList" Grid.Row="1" ItemsSource="{Binding FilteredConnections}"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          BorderThickness="0" Background="Transparent" Padding="4,2"
+                                          AllowDrop="True"
+                                          PreviewMouseLeftButtonDown="OnSidebarItemPreviewMouseLeftButtonDown"
+                                          MouseMove="OnSidebarItemMouseMove"
+                                          DragOver="OnSidebarItemDragOver"
+                                          Drop="OnSidebarItemDrop">
+                                     <ListBox.ItemContainerStyle>
+                                         <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                             <Setter Property="Padding" Value="0"/>
+                                             <Setter Property="Margin" Value="2,1"/>
+                                             <Setter Property="Cursor" Value="Hand"/>
+                                         </Style>
+                                     </ListBox.ItemContainerStyle>
+                                     <ListBox.ItemTemplate>
+                                         <DataTemplate>
+                                             <Border Padding="8,6" Background="Transparent" CornerRadius="4"
+                                                     Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                     ToolTip="Double-click to connect • Drag to reorder • Right-click for options">
+                                                 <Border.InputBindings>
+                                                     <MouseBinding MouseAction="LeftDoubleClick"
+                                                                   Command="{Binding DataContext.ConnectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                   CommandParameter="{Binding}"/>
+                                                 </Border.InputBindings>
+                                                 <Border.ContextMenu>
+                                                     <ContextMenu>
+                                                         <MenuItem Header="Connect (Embedded Tab)"
+                                                                   Command="{Binding PlacementTarget.Tag.ConnectTabbedCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                         <MenuItem Header="Connect (Fullscreen)"
+                                                                   Command="{Binding PlacementTarget.Tag.ConnectFullscreenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                         <MenuItem Header="Connect (Native MSTSC Window)"
+                                                                   Command="{Binding PlacementTarget.Tag.ConnectExternalCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                         <Separator/>
+                                                         <MenuItem Command="{Binding PlacementTarget.Tag.ToggleBookmarkCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                                             <MenuItem.Style>
+                                                                 <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                                     <Setter Property="Header" Value="Bookmark Server (Show on Top)"/>
+                                                                     <Style.Triggers>
+                                                                         <DataTrigger Binding="{Binding PlacementTarget.DataContext.IsBookmarked, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="True">
+                                                                             <Setter Property="Header" Value="Remove Bookmark"/>
+                                                                         </DataTrigger>
+                                                                     </Style.Triggers>
+                                                                 </Style>
+                                                             </MenuItem.Style>
+                                                         </MenuItem>
+                                                         <Separator/>
+                                                         <MenuItem Header="Edit"
+                                                                   Command="{Binding PlacementTarget.Tag.EditConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                         <MenuItem Header="Delete"
+                                                                   Command="{Binding PlacementTarget.Tag.DeleteConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                     </ContextMenu>
+                                                 </Border.ContextMenu>
 
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
+                                                 <Grid>
+                                                     <Grid.ColumnDefinitions>
+                                                         <ColumnDefinition Width="Auto"/>
+                                                         <ColumnDefinition Width="*"/>
+                                                         <ColumnDefinition Width="Auto"/>
+                                                     </Grid.ColumnDefinitions>
 
-                                                    <!-- Protocol Badge -->
-                                                    <Border Grid.Column="0" Width="32" Height="22" CornerRadius="4" Margin="0,0,10,0"
-                                                            VerticalAlignment="Center">
-                                                        <Border.Style>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="Background" Value="#0078D4"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding Protocol}" Value="SSH">
-                                                                        <Setter Property="Background" Value="#107C41"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding Protocol}" Value="VNC">
-                                                                        <Setter Property="Background" Value="#D83B01"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding Protocol}" Value="Web">
-                                                                        <Setter Property="Background" Value="#881798"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Border.Style>
-                                                        <TextBlock Text="{Binding Protocol}" FontSize="9" FontWeight="Bold" Foreground="White"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                    </Border>
+                                                     <!-- Protocol Badge -->
+                                                     <Border Grid.Column="0" Width="32" Height="22" CornerRadius="4" Margin="0,0,10,0"
+                                                             VerticalAlignment="Center">
+                                                         <Border.Style>
+                                                             <Style TargetType="Border">
+                                                                 <Setter Property="Background" Value="#0078D4"/>
+                                                                 <Style.Triggers>
+                                                                     <DataTrigger Binding="{Binding Protocol}" Value="SSH">
+                                                                         <Setter Property="Background" Value="#107C41"/>
+                                                                     </DataTrigger>
+                                                                     <DataTrigger Binding="{Binding Protocol}" Value="VNC">
+                                                                         <Setter Property="Background" Value="#D83B01"/>
+                                                                     </DataTrigger>
+                                                                     <DataTrigger Binding="{Binding Protocol}" Value="Web">
+                                                                         <Setter Property="Background" Value="#881798"/>
+                                                                     </DataTrigger>
+                                                                 </Style.Triggers>
+                                                             </Style>
+                                                         </Border.Style>
+                                                         <TextBlock Text="{Binding Protocol}" FontSize="9" FontWeight="Bold" Foreground="White"
+                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                     </Border>
 
-                                                    <!-- Name and Address -->
-                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="12"
-                                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                                        <TextBlock Text="{Binding FullAddress}" FontSize="11" Margin="0,1,0,0"
-                                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
+                                                     <!-- Name and Address -->
+                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                         <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="12"
+                                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                         <TextBlock Text="{Binding FullAddress}" FontSize="11" Margin="0,1,0,0"
+                                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                     </StackPanel>
+
+                                                     <!-- Bookmark Star Button (Empty star vs Golden star) -->
+                                                     <Button Grid.Column="2" Width="26" Height="26" Padding="0" Background="Transparent"
+                                                             BorderThickness="0" Cursor="Hand" VerticalAlignment="Center" Margin="4,0,0,0"
+                                                             Command="{Binding DataContext.ToggleBookmarkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                             CommandParameter="{Binding}"
+                                                             Focusable="False">
+                                                         <Button.Style>
+                                                             <Style TargetType="Button">
+                                                                 <Setter Property="Background" Value="Transparent"/>
+                                                                 <Setter Property="Template">
+                                                                     <Setter.Value>
+                                                                         <ControlTemplate TargetType="Button">
+                                                                             <Border x:Name="StarBtnBorder" Background="Transparent" CornerRadius="4">
+                                                                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                             </Border>
+                                                                             <ControlTemplate.Triggers>
+                                                                                 <Trigger Property="IsMouseOver" Value="True">
+                                                                                     <Setter TargetName="StarBtnBorder" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                                                                                 </Trigger>
+                                                                             </ControlTemplate.Triggers>
+                                                                         </ControlTemplate>
+                                                                     </Setter.Value>
+                                                                 </Setter>
+                                                             </Style>
+                                                         </Button.Style>
+                                                         <Button.ToolTip>
+                                                             <ToolTip>
+                                                                 <TextBlock>
+                                                                     <TextBlock.Style>
+                                                                         <Style TargetType="TextBlock">
+                                                                             <Setter Property="Text" Value="Bookmark server (show on top)"/>
+                                                                             <Style.Triggers>
+                                                                                 <DataTrigger Binding="{Binding IsBookmarked}" Value="True">
+                                                                                     <Setter Property="Text" Value="Remove Bookmark"/>
+                                                                                 </DataTrigger>
+                                                                             </Style.Triggers>
+                                                                         </Style>
+                                                                     </TextBlock.Style>
+                                                                 </TextBlock>
+                                                             </ToolTip>
+                                                         </Button.ToolTip>
+                                                         <ui:SymbolIcon Symbol="Star24" FontSize="14">
+                                                             <ui:SymbolIcon.Style>
+                                                                 <Style TargetType="ui:SymbolIcon">
+                                                                     <!-- Unbookmarked: subtle outline star -->
+                                                                     <Setter Property="Foreground" Value="#50FFFFFF"/>
+                                                                     <Setter Property="Opacity" Value="0.45"/>
+                                                                     <Setter Property="Filled" Value="False"/>
+                                                                     <Style.Triggers>
+                                                                         <DataTrigger Binding="{Binding IsBookmarked}" Value="True">
+                                                                             <!-- Bookmarked: vivid golden star! -->
+                                                                             <Setter Property="Foreground" Value="#FFB900"/>
+                                                                             <Setter Property="Opacity" Value="1.0"/>
+                                                                             <Setter Property="Filled" Value="True"/>
+                                                                         </DataTrigger>
+                                                                     </Style.Triggers>
+                                                                 </Style>
+                                                             </ui:SymbolIcon.Style>
+                                                         </ui:SymbolIcon>
+                                                     </Button>
+                                                 </Grid>
+                                             </Border>
+                                         </DataTemplate>
+                                     </ListBox.ItemTemplate>
+                                 </ListBox>
                             </Grid>
                         </TabItem>
 

@@ -177,7 +177,10 @@ public partial class MainViewModel : ObservableObject
             }
         }
 
-        Connections = new ObservableCollection<ConnectionItem>(conns);
+        Connections = new ObservableCollection<ConnectionItem>(
+            conns.OrderByDescending(c => c.IsBookmarked)
+                 .ThenBy(c => c.SortOrder)
+                 .ThenBy(c => c.DisplayName));
         Credentials = new ObservableCollection<Credential>(creds);
         Groups = new ObservableCollection<ConnectionGroup>(groups);
 
@@ -243,11 +246,96 @@ public partial class MainViewModel : ObservableObject
         var idx = Connections.IndexOf(target);
         if (idx > 0)
         {
-            Connections.Move(idx, 0);
+            int targetIdx = target.IsBookmarked ? 0 : Connections.Take(idx).Count(c => c.IsBookmarked);
+            if (idx != targetIdx)
+            {
+                Connections.Move(idx, targetIdx);
+            }
         }
         ApplyFilter();
 
         ConnectionsVM?.MoveCardToTop(target.Id);
+    }
+
+    [RelayCommand]
+    public async Task ToggleBookmarkAsync(object? parameter)
+    {
+        ConnectionItem? connection = parameter switch
+        {
+            ConnectionItem conn => conn,
+            ConnectionCardViewModel card => card.Model,
+            _ => null
+        };
+
+        if (connection == null) return;
+
+        connection.IsBookmarked = !connection.IsBookmarked;
+        LogEngine.Instance.Info("UI", $"Toggled bookmark for '{connection.DisplayName}' (Bookmarked: {connection.IsBookmarked})");
+
+        await _databaseService.SaveConnectionAsync(connection);
+
+        // Re-order collection: bookmarked items first, then by SortOrder, then DisplayName
+        var sorted = Connections.OrderByDescending(c => c.IsBookmarked)
+                                .ThenBy(c => c.SortOrder)
+                                .ThenBy(c => c.DisplayName)
+                                .ToList();
+
+        Connections.Clear();
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            sorted[i].SortOrder = i;
+            Connections.Add(sorted[i]);
+        }
+
+        await _databaseService.UpdateConnectionsOrderAsync(Connections);
+        ApplyFilter();
+        ConnectionsVM?.SyncConnections(Connections, Credentials);
+    }
+
+    public async Task ReorderConnectionsAsync(int oldIndex, int newIndex)
+    {
+        if (oldIndex < 0 || oldIndex >= Connections.Count || newIndex < 0 || newIndex >= Connections.Count || oldIndex == newIndex)
+            return;
+
+        var item = Connections[oldIndex];
+        int bookmarkedCount = Connections.Count(c => c.IsBookmarked);
+
+        if (item.IsBookmarked && bookmarkedCount > 0)
+        {
+            newIndex = Math.Clamp(newIndex, 0, bookmarkedCount - 1);
+        }
+        else if (!item.IsBookmarked && bookmarkedCount < Connections.Count)
+        {
+            newIndex = Math.Clamp(newIndex, bookmarkedCount, Connections.Count - 1);
+        }
+
+        if (oldIndex == newIndex) return;
+
+        Connections.Move(oldIndex, newIndex);
+
+        for (int i = 0; i < Connections.Count; i++)
+        {
+            Connections[i].SortOrder = i;
+        }
+
+        await _databaseService.UpdateConnectionsOrderAsync(Connections);
+        ApplyFilter();
+        ConnectionsVM?.SyncConnections(Connections, Credentials);
+        LogEngine.Instance.Debug("UI", $"Reordered connection '{item.DisplayName}' from {oldIndex} to {newIndex}");
+    }
+
+    public async Task ReorderConnectionItemAsync(ConnectionItem sourceItem, ConnectionItem targetItem)
+    {
+        if (sourceItem == null || targetItem == null || sourceItem.Id == targetItem.Id)
+            return;
+
+        int oldIndex = Connections.IndexOf(sourceItem);
+        int newIndex = Connections.IndexOf(targetItem);
+
+        if (oldIndex < 0 || newIndex < 0 || oldIndex == newIndex)
+            return;
+
+        await ReorderConnectionsAsync(oldIndex, newIndex);
     }
 
     private async Task ConnectWithModeAsync(ConnectionItem connection, DisplayMode mode)

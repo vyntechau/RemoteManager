@@ -72,6 +72,8 @@ public class SqliteDatabaseService : IDatabaseService
                     CredentialId TEXT,
                     DisplayMode INTEGER NOT NULL,
                     SettingsJson TEXT,
+                    IsBookmarked INTEGER NOT NULL DEFAULT 0,
+                    SortOrder INTEGER NOT NULL DEFAULT 0,
                     CreatedAt TEXT NOT NULL,
                     UpdatedAt TEXT NOT NULL,
                     FOREIGN KEY (GroupId) REFERENCES Groups(Id) ON DELETE SET NULL,
@@ -84,8 +86,36 @@ public class SqliteDatabaseService : IDatabaseService
                 );
             ";
 
-            using var cmd = new SqliteCommand(sql, conn);
-            await cmd.ExecuteNonQueryAsync();
+            using (var cmd = new SqliteCommand(sql, conn))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            // Check and apply migrations for existing databases
+            var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            using (var pragmaCmd = new SqliteCommand("PRAGMA table_info(Connections);", conn))
+            using (var pragmaReader = await pragmaCmd.ExecuteReaderAsync())
+            {
+                while (await pragmaReader.ReadAsync())
+                {
+                    columns.Add(pragmaReader.GetString(1));
+                }
+            }
+
+            if (!columns.Contains("IsBookmarked"))
+            {
+                using var alterCmd = new SqliteCommand("ALTER TABLE Connections ADD COLUMN IsBookmarked INTEGER NOT NULL DEFAULT 0;", conn);
+                await alterCmd.ExecuteNonQueryAsync();
+                LogEngine.Instance.Info("Database", "Migrated schema: added IsBookmarked column to Connections table.");
+            }
+
+            if (!columns.Contains("SortOrder"))
+            {
+                using var alterCmd = new SqliteCommand("ALTER TABLE Connections ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0;", conn);
+                await alterCmd.ExecuteNonQueryAsync();
+                LogEngine.Instance.Info("Database", "Migrated schema: added SortOrder column to Connections table.");
+            }
+
             LogEngine.Instance.Info("Database", "Database schema initialized successfully.");
         }
         catch (Exception ex)
@@ -104,7 +134,7 @@ public class SqliteDatabaseService : IDatabaseService
             using var conn = CreateConnection();
             await conn.OpenAsync();
 
-            var sql = "SELECT Id, Name, Protocol, Host, Port, GroupId, CredentialId, DisplayMode, SettingsJson, CreatedAt, UpdatedAt FROM Connections ORDER BY Name ASC;";
+            var sql = "SELECT Id, Name, Protocol, Host, Port, GroupId, CredentialId, DisplayMode, SettingsJson, IsBookmarked, SortOrder, CreatedAt, UpdatedAt FROM Connections ORDER BY IsBookmarked DESC, SortOrder ASC, Name ASC;";
             using var cmd = new SqliteCommand(sql, conn);
             using var reader = await cmd.ExecuteReaderAsync();
 
@@ -122,8 +152,10 @@ public class SqliteDatabaseService : IDatabaseService
                     CredentialId = reader.IsDBNull(6) ? null : Guid.Parse(reader.GetString(6)),
                     DisplayMode = (DisplayMode)reader.GetInt32(7),
                     SettingsJson = reader.IsDBNull(8) ? null : reader.GetString(8),
-                    CreatedAt = DateTime.Parse(reader.GetString(9)),
-                    UpdatedAt = DateTime.Parse(reader.GetString(10))
+                    IsBookmarked = reader.GetInt32(9) == 1,
+                    SortOrder = reader.GetInt32(10),
+                    CreatedAt = DateTime.Parse(reader.GetString(11)),
+                    UpdatedAt = DateTime.Parse(reader.GetString(12))
                 });
             }
             LogEngine.Instance.Debug("Database", $"Retrieved {list.Count} connections.");
@@ -143,7 +175,7 @@ public class SqliteDatabaseService : IDatabaseService
             using var conn = CreateConnection();
             await conn.OpenAsync();
 
-            var sql = "SELECT Id, Name, Protocol, Host, Port, GroupId, CredentialId, DisplayMode, SettingsJson, CreatedAt, UpdatedAt FROM Connections WHERE Id = @Id;";
+            var sql = "SELECT Id, Name, Protocol, Host, Port, GroupId, CredentialId, DisplayMode, SettingsJson, IsBookmarked, SortOrder, CreatedAt, UpdatedAt FROM Connections WHERE Id = @Id;";
             using var cmd = new SqliteCommand(sql, conn);
             cmd.Parameters.AddWithValue("@Id", id.ToString());
 
@@ -161,8 +193,10 @@ public class SqliteDatabaseService : IDatabaseService
                     CredentialId = reader.IsDBNull(6) ? null : Guid.Parse(reader.GetString(6)),
                     DisplayMode = (DisplayMode)reader.GetInt32(7),
                     SettingsJson = reader.IsDBNull(8) ? null : reader.GetString(8),
-                    CreatedAt = DateTime.Parse(reader.GetString(9)),
-                    UpdatedAt = DateTime.Parse(reader.GetString(10))
+                    IsBookmarked = reader.GetInt32(9) == 1,
+                    SortOrder = reader.GetInt32(10),
+                    CreatedAt = DateTime.Parse(reader.GetString(11)),
+                    UpdatedAt = DateTime.Parse(reader.GetString(12))
                 };
             }
             return null;
@@ -183,8 +217,8 @@ public class SqliteDatabaseService : IDatabaseService
             await conn.OpenAsync();
 
             var sql = @"
-                INSERT INTO Connections (Id, Name, Protocol, Host, Port, GroupId, CredentialId, DisplayMode, SettingsJson, CreatedAt, UpdatedAt)
-                VALUES (@Id, @Name, @Protocol, @Host, @Port, @GroupId, @CredentialId, @DisplayMode, @SettingsJson, @CreatedAt, @UpdatedAt)
+                INSERT INTO Connections (Id, Name, Protocol, Host, Port, GroupId, CredentialId, DisplayMode, SettingsJson, IsBookmarked, SortOrder, CreatedAt, UpdatedAt)
+                VALUES (@Id, @Name, @Protocol, @Host, @Port, @GroupId, @CredentialId, @DisplayMode, @SettingsJson, @IsBookmarked, @SortOrder, @CreatedAt, @UpdatedAt)
                 ON CONFLICT(Id) DO UPDATE SET
                     Name = excluded.Name,
                     Protocol = excluded.Protocol,
@@ -194,6 +228,8 @@ public class SqliteDatabaseService : IDatabaseService
                     CredentialId = excluded.CredentialId,
                     DisplayMode = excluded.DisplayMode,
                     SettingsJson = excluded.SettingsJson,
+                    IsBookmarked = excluded.IsBookmarked,
+                    SortOrder = excluded.SortOrder,
                     UpdatedAt = excluded.UpdatedAt;
             ";
 
@@ -207,6 +243,8 @@ public class SqliteDatabaseService : IDatabaseService
             cmd.Parameters.AddWithValue("@CredentialId", (object?)connection.CredentialId?.ToString() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@DisplayMode", (int)connection.DisplayMode);
             cmd.Parameters.AddWithValue("@SettingsJson", (object?)connection.SettingsJson ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@IsBookmarked", connection.IsBookmarked ? 1 : 0);
+            cmd.Parameters.AddWithValue("@SortOrder", connection.SortOrder);
             cmd.Parameters.AddWithValue("@CreatedAt", connection.CreatedAt.ToString("O"));
             cmd.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow.ToString("O"));
 
@@ -216,6 +254,41 @@ public class SqliteDatabaseService : IDatabaseService
         catch (Exception ex)
         {
             LogEngine.Instance.Error("Database", $"Failed to save connection '{connection.Name}'", ex);
+            throw;
+        }
+    }
+
+    public async Task UpdateConnectionsOrderAsync(IEnumerable<ConnectionItem> connections)
+    {
+        var list = connections.ToList();
+        if (list.Count == 0) return;
+
+        LogEngine.Instance.Debug("Database", $"Updating sort order for {list.Count} connections...");
+        try
+        {
+            using var conn = CreateConnection();
+            await conn.OpenAsync();
+            using var tx = conn.BeginTransaction();
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                var item = list[i];
+                item.SortOrder = i;
+                var sql = "UPDATE Connections SET SortOrder = @SortOrder, IsBookmarked = @IsBookmarked, UpdatedAt = @UpdatedAt WHERE Id = @Id;";
+                using var cmd = new SqliteCommand(sql, conn, tx);
+                cmd.Parameters.AddWithValue("@SortOrder", item.SortOrder);
+                cmd.Parameters.AddWithValue("@IsBookmarked", item.IsBookmarked ? 1 : 0);
+                cmd.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow.ToString("O"));
+                cmd.Parameters.AddWithValue("@Id", item.Id.ToString());
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            await tx.CommitAsync();
+            LogEngine.Instance.Debug("Database", "Connections sort order updated successfully.");
+        }
+        catch (Exception ex)
+        {
+            LogEngine.Instance.Error("Database", "Error updating connections sort order", ex);
             throw;
         }
     }

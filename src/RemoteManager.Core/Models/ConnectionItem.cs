@@ -11,6 +11,8 @@ public class ConnectionItem
     public Guid? CredentialId { get; set; }
     public DisplayMode DisplayMode { get; set; } = DisplayMode.Tabbed;
     public string? SettingsJson { get; set; }
+    public bool IsBookmarked { get; set; } = false;
+    public int SortOrder { get; set; } = 0;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
@@ -45,6 +47,8 @@ public class ConnectionItem
             CredentialId = CredentialId,
             DisplayMode = DisplayMode,
             SettingsJson = SettingsJson,
+            IsBookmarked = IsBookmarked,
+            SortOrder = SortOrder,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

@@ -64,14 +64,21 @@
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="GridViewColumnHeader">
-                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        <Border x:Name="HeaderBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="HeaderBorder" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -141,62 +148,278 @@
                            FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="36,4,0,0"/>
             </StackPanel>
 
-            <!-- KPI Metric Chips -->
+            <!-- Top Right: Filter Select Box with Multi-Checkbox & Total Server Badge -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <!-- Total Servers -->
+                <!-- Total Servers Metric Badge -->
                 <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
                         BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
-                        CornerRadius="6" Padding="10,4" Margin="0,0,6,0">
-                    <StackPanel Orientation="Horizontal">
+                        CornerRadius="6" Padding="10,6" Margin="0,0,8,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="ServerMultiple20" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,6,0"/>
                         <TextBlock Text="Total: " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                         <TextBlock Text="{Binding TotalCount}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                     </StackPanel>
                 </Border>
 
-                <!-- RDP Count -->
-                <Border Background="#150078D4" BorderBrush="#300078D4" BorderThickness="1"
-                        CornerRadius="6" Padding="10,4" Margin="0,0,6,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="RDP: " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock Text="{Binding RdpCount}" FontSize="12" FontWeight="Bold" Foreground="#0078D4"/>
-                    </StackPanel>
-                </Border>
+                <!-- Modern Fluent UI Select Box Dropdown -->
+                <Grid VerticalAlignment="Center">
+                    <ToggleButton x:Name="FilterDropdownButton"
+                                  Height="34"
+                                  Padding="10,0"
+                                  Cursor="Hand">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton">
+                                <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="DropdownBorder"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="6"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="DropdownBorder" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                                    <Setter TargetName="DropdownBorder" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="DropdownBorder" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                                    <Setter TargetName="DropdownBorder" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasActiveFilter}" Value="True">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ToggleButton.Style>
 
-                <!-- SSH Count -->
-                <Border Background="#15107C41" BorderBrush="#30107C41" BorderThickness="1"
-                        CornerRadius="6" Padding="10,4" Margin="0,0,6,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="SSH: " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock Text="{Binding SshCount}" FontSize="12" FontWeight="Bold" Foreground="#107C41"/>
-                    </StackPanel>
-                </Border>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- Filter Icon -->
+                            <ui:SymbolIcon Symbol="Filter24" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center">
+                                <ui:SymbolIcon.Style>
+                                    <Style TargetType="ui:SymbolIcon">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasActiveFilter}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:SymbolIcon.Style>
+                            </ui:SymbolIcon>
 
-                <!-- VNC Count -->
-                <Border Background="#15D83B01" BorderBrush="#30D83B01" BorderThickness="1"
-                        CornerRadius="6" Padding="10,4" Margin="0,0,6,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="VNC: " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock Text="{Binding VncCount}" FontSize="12" FontWeight="Bold" Foreground="#D83B01"/>
-                    </StackPanel>
-                </Border>
+                            <!-- Filter Summary Label -->
+                            <TextBlock Text="{Binding ActiveFilterSummary}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
 
-                <!-- Web Count -->
-                <Border Background="#15881798" BorderBrush="#30881798" BorderThickness="1"
-                        CornerRadius="6" Padding="10,4" Margin="0,0,6,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Web: " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock Text="{Binding WebCount}" FontSize="12" FontWeight="Bold" Foreground="#881798"/>
-                    </StackPanel>
-                </Border>
+                            <!-- Active Filter Count Pill Badge -->
+                            <Border CornerRadius="10" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center"
+                                    Background="{DynamicResource AccentFillColorDefaultBrush}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasActiveFilter}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding ActiveFilterBadgeText}" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                            </Border>
 
-                <!-- Online Count -->
-                <Border Background="#1510b981" BorderBrush="#3010b981" BorderThickness="1"
-                        CornerRadius="6" Padding="10,4">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Online: " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock Text="{Binding OnlineCount}" FontSize="12" FontWeight="Bold" Foreground="#10b981"/>
-                    </StackPanel>
-                </Border>
+                            <!-- Chevron Down Icon -->
+                            <ui:SymbolIcon Symbol="ChevronDown16" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <!-- Popup DropDown with Multi Checkboxes -->
+                    <Popup x:Name="FilterPopup"
+                           PlacementTarget="{Binding ElementName=FilterDropdownButton}"
+                           IsOpen="{Binding IsChecked, ElementName=FilterDropdownButton, Mode=TwoWay}"
+                           StaysOpen="False"
+                           Placement="Bottom"
+                           AllowsTransparency="True"
+                           PopupAnimation="Fade"
+                           VerticalOffset="4">
+                        <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14,12"
+                                Width="300"
+                                Margin="0,0,12,12">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="20" ShadowDepth="4" Direction="270" Color="Black" Opacity="0.45"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <!-- Header: Title & Reset Action -->
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ui:SymbolIcon Symbol="Filter24" FontSize="14" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Filter by Category" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Reset All" Command="{Binding ResetFiltersCommand}"
+                                            Background="Transparent" BorderThickness="0" Padding="6,2" Cursor="Hand"
+                                            Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                </Grid>
+
+                                <Rectangle Height="1" Fill="{DynamicResource ControlElevationBorderBrush}" Margin="0,0,0,8"/>
+
+                                <!-- SECTION: GENERAL -->
+                                <TextBlock Text="GENERAL" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="4,0,0,4"/>
+
+                                <!-- All Servers (Total) Checkbox -->
+                                <CheckBox IsChecked="{Binding IsFilterAll, Mode=TwoWay}" Margin="0,2" Padding="6,4" HorizontalAlignment="Stretch" Cursor="Hand">
+                                    <Grid Margin="4,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="SelectAllOn24" FontSize="14" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="All Servers" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <Border Grid.Column="2" Background="{DynamicResource ControlFillColorSecondaryBrush}" BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,1">
+                                            <TextBlock Text="{Binding TotalCount}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        </Border>
+                                    </Grid>
+                                </CheckBox>
+
+                                <!-- Bookmarked Checkbox -->
+                                <CheckBox IsChecked="{Binding IsFilterBookmarked, Mode=TwoWay}" Margin="0,2" Padding="6,4" HorizontalAlignment="Stretch" Cursor="Hand">
+                                    <Grid Margin="4,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="Star24" Filled="True" FontSize="14" Foreground="#FFB900" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="Bookmarked" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <Border Grid.Column="2" Background="#20FFB900" BorderBrush="#40FFB900" BorderThickness="1" CornerRadius="4" Padding="6,1">
+                                            <TextBlock Text="{Binding BookmarkedCount}" FontSize="11" FontWeight="Bold" Foreground="#FFB900"/>
+                                        </Border>
+                                    </Grid>
+                                </CheckBox>
+
+                                <Rectangle Height="1" Fill="{DynamicResource ControlElevationBorderBrush}" Margin="0,6,0,6"/>
+
+                                <!-- SECTION: PROTOCOLS -->
+                                <TextBlock Text="PROTOCOLS" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="4,0,0,4"/>
+
+                                <!-- RDP Checkbox -->
+                                <CheckBox IsChecked="{Binding IsFilterRdp, Mode=TwoWay}" Margin="0,2" Padding="6,4" HorizontalAlignment="Stretch" Cursor="Hand">
+                                    <Grid Margin="4,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="Desktop24" FontSize="14" Foreground="#0078D4" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="Remote Desktop (RDP)" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <Border Grid.Column="2" Background="#200078D4" BorderBrush="#400078D4" BorderThickness="1" CornerRadius="4" Padding="6,1">
+                                            <TextBlock Text="{Binding RdpCount}" FontSize="11" FontWeight="Bold" Foreground="#0078D4"/>
+                                        </Border>
+                                    </Grid>
+                                </CheckBox>
+
+                                <!-- SSH Checkbox -->
+                                <CheckBox IsChecked="{Binding IsFilterSsh, Mode=TwoWay}" Margin="0,2" Padding="6,4" HorizontalAlignment="Stretch" Cursor="Hand">
+                                    <Grid Margin="4,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="WindowConsole20" FontSize="14" Foreground="#107C41" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="SSH Terminal" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <Border Grid.Column="2" Background="#20107C41" BorderBrush="#40107C41" BorderThickness="1" CornerRadius="4" Padding="6,1">
+                                            <TextBlock Text="{Binding SshCount}" FontSize="11" FontWeight="Bold" Foreground="#107C41"/>
+                                        </Border>
+                                    </Grid>
+                                </CheckBox>
+
+                                <!-- VNC Checkbox -->
+                                <CheckBox IsChecked="{Binding IsFilterVnc, Mode=TwoWay}" Margin="0,2" Padding="6,4" HorizontalAlignment="Stretch" Cursor="Hand">
+                                    <Grid Margin="4,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="SlideTextSparkle24" FontSize="14" Foreground="#D83B01" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="VNC Screen" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <Border Grid.Column="2" Background="#20D83B01" BorderBrush="#40D83B01" BorderThickness="1" CornerRadius="4" Padding="6,1">
+                                            <TextBlock Text="{Binding VncCount}" FontSize="11" FontWeight="Bold" Foreground="#D83B01"/>
+                                        </Border>
+                                    </Grid>
+                                </CheckBox>
+
+                                <!-- Web Checkbox -->
+                                <CheckBox IsChecked="{Binding IsFilterWeb, Mode=TwoWay}" Margin="0,2" Padding="6,4" HorizontalAlignment="Stretch" Cursor="Hand">
+                                    <Grid Margin="4,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="Globe24" FontSize="14" Foreground="#881798" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="Web Console" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <Border Grid.Column="2" Background="#20881798" BorderBrush="#40881798" BorderThickness="1" CornerRadius="4" Padding="6,1">
+                                            <TextBlock Text="{Binding WebCount}" FontSize="11" FontWeight="Bold" Foreground="#881798"/>
+                                        </Border>
+                                    </Grid>
+                                </CheckBox>
+
+                                <Rectangle Height="1" Fill="{DynamicResource ControlElevationBorderBrush}" Margin="0,6,0,6"/>
+
+                                <!-- SECTION: STATUS -->
+                                <TextBlock Text="STATUS" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="4,0,0,4"/>
+
+                                <!-- Online Only Checkbox -->
+                                <CheckBox IsChecked="{Binding IsFilterOnlineOnly, Mode=TwoWay}" Margin="0,2" Padding="6,4" HorizontalAlignment="Stretch" Cursor="Hand">
+                                    <Grid Margin="4,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="Pulse24" FontSize="14" Foreground="#10b981" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="Online Only" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <Border Grid.Column="2" Background="#2010b981" BorderBrush="#4010b981" BorderThickness="1" CornerRadius="4" Padding="6,1">
+                                            <TextBlock Text="{Binding OnlineCount}" FontSize="11" FontWeight="Bold" Foreground="#10b981"/>
+                                        </Border>
+                                    </Grid>
+                                </CheckBox>
+
+                                <Rectangle Height="1" Fill="{DynamicResource ControlElevationBorderBrush}" Margin="0,8,0,6"/>
+
+                                <!-- Footer Info -->
+                                <TextBlock HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                    <Run Text="Showing "/>
+                                    <Run Text="{Binding FilteredCards.Count, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <Run Text=" of "/>
+                                    <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <Run Text=" servers"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </Grid>
             </StackPanel>
         </Grid>
 
@@ -223,6 +446,20 @@
                                             <Setter Property="Foreground" Value="White"/>
                                             <Setter Property="FontWeight" Value="SemiBold"/>
                                             <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="★ Bookmarked" Command="{Binding SetProtocolFilterCommand}" CommandParameter="Bookmarked">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource FilterPillStyle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFilterBookmarked}" Value="True">
+                                            <Setter Property="Background" Value="#FFB900"/>
+                                            <Setter Property="Foreground" Value="Black"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="BorderBrush" Value="#FFB900"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -291,7 +528,7 @@
                         <TextBlock Text="Sort:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <ComboBox ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSortOption}"
-                                  Width="130" Height="32" VerticalContentAlignment="Center"/>
+                                  Width="175" Height="32" VerticalContentAlignment="Center"/>
                     </StackPanel>
                 </WrapPanel>
 
@@ -472,6 +709,20 @@
                                                   Command="{Binding PlacementTarget.Tag.CopyAddressCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         <Separator/>
+                                        <MenuItem Command="{Binding PlacementTarget.Tag.ToggleBookmarkCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                            <MenuItem.Style>
+                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                    <Setter Property="Header" Value="Bookmark Server (Show on Top)"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding PlacementTarget.DataContext.IsBookmarked, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="True">
+                                                            <Setter Property="Header" Value="Remove Bookmark"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </MenuItem.Style>
+                                        </MenuItem>
+                                        <Separator/>
                                         <MenuItem Header="Edit Connection"
                                                   Command="{Binding PlacementTarget.Tag.EditConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
@@ -486,7 +737,7 @@
 
                                 <Grid Margin="16,14">
                                     <Grid.RowDefinitions>
-                                        <!-- Top Row: Protocol Badge, Ping Status, Options -->
+                                        <!-- Top Row: Protocol Badge, Ping Status, Bookmark & Options -->
                                         <RowDefinition Height="Auto"/>
                                         <!-- Server Name & Address -->
                                         <RowDefinition Height="Auto"/>
@@ -502,6 +753,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
                                         <!-- Protocol Badge -->
@@ -516,8 +768,30 @@
                                                        VerticalAlignment="Center"/>
                                         </StackPanel>
 
+                                        <!-- Bookmark Star Button (Empty star vs Golden star) -->
+                                        <Button Grid.Column="2" Width="26" Height="26" Padding="0" Background="Transparent"
+                                                BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" ToolTip="{Binding BookmarkTooltip}"
+                                                Command="{Binding DataContext.ToggleBookmarkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Focusable="False">
+                                            <ui:SymbolIcon Symbol="Star24" FontSize="14" Foreground="{Binding BookmarkIconColor}">
+                                                <ui:SymbolIcon.Style>
+                                                    <Style TargetType="ui:SymbolIcon">
+                                                        <Setter Property="Opacity" Value="0.45"/>
+                                                        <Setter Property="Filled" Value="False"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsBookmarked}" Value="True">
+                                                                <Setter Property="Opacity" Value="1.0"/>
+                                                                <Setter Property="Filled" Value="True"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:SymbolIcon.Style>
+                                            </ui:SymbolIcon>
+                                        </Button>
+
                                         <!-- Options Menu Trigger -->
-                                        <Button Grid.Column="2" Content="•••" Width="26" Height="26" Padding="0" Background="Transparent"
+                                        <Button Grid.Column="3" Content="•••" Width="26" Height="26" Padding="0" Background="Transparent"
                                                 BorderThickness="0" Cursor="Hand" ToolTip="More Options"
                                                 Click="OnCardMenuClick"/>
                                     </Grid>
@@ -600,11 +874,55 @@
                           ScrollViewer.HorizontalScrollBarVisibility="Auto"
                           VirtualizingStackPanel.IsVirtualizing="True"
                           ItemContainerStyle="{StaticResource FluentTableRowStyle}"
-                          MouseDoubleClick="OnTableItemDoubleClick">
+                          MouseDoubleClick="OnTableItemDoubleClick"
+                          GridViewColumnHeader.Click="OnColumnHeaderClick">
                     <ListView.View>
                         <GridView ColumnHeaderContainerStyle="{StaticResource FluentColumnHeaderStyle}">
+                            <!-- Bookmark Column -->
+                            <GridViewColumn Width="56">
+                                <GridViewColumn.Header>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Tag="Bookmark">
+                                        <ui:SymbolIcon Symbol="Star24" Filled="True" FontSize="11" Foreground="#FFB900" VerticalAlignment="Center"/>
+                                        <ui:SymbolIcon Symbol="{Binding DataContext.BookmarkSortIcon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       FontSize="11" Margin="4,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.BookmarkSortIconBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                    </StackPanel>
+                                </GridViewColumn.Header>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Width="26" Height="26" Padding="0" Background="Transparent"
+                                                BorderThickness="0" Cursor="Hand" ToolTip="{Binding BookmarkTooltip}"
+                                                Command="{Binding DataContext.ToggleBookmarkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}" Focusable="False">
+                                            <ui:SymbolIcon Symbol="Star24" FontSize="13" Foreground="{Binding BookmarkIconColor}">
+                                                <ui:SymbolIcon.Style>
+                                                    <Style TargetType="ui:SymbolIcon">
+                                                        <Setter Property="Opacity" Value="0.45"/>
+                                                        <Setter Property="Filled" Value="False"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsBookmarked}" Value="True">
+                                                                <Setter Property="Opacity" Value="1.0"/>
+                                                                <Setter Property="Filled" Value="True"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:SymbolIcon.Style>
+                                            </ui:SymbolIcon>
+                                        </Button>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
                             <!-- Status Column -->
-                            <GridViewColumn Header="Status" Width="115">
+                            <GridViewColumn Width="125">
+                                <GridViewColumn.Header>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Tag="Status">
+                                        <TextBlock Text="Status" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                        <ui:SymbolIcon Symbol="{Binding DataContext.StatusSortIcon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.StatusSortIconBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                    </StackPanel>
+                                </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border CornerRadius="6" Padding="8,3" HorizontalAlignment="Left"
@@ -621,7 +939,15 @@
                             </GridViewColumn>
 
                             <!-- Protocol Column -->
-                            <GridViewColumn Header="Protocol" Width="85">
+                            <GridViewColumn Width="110">
+                                <GridViewColumn.Header>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Tag="Protocol">
+                                        <TextBlock Text="Protocol" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                        <ui:SymbolIcon Symbol="{Binding DataContext.ProtocolSortIcon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.ProtocolSortIconBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                    </StackPanel>
+                                </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border CornerRadius="4" Padding="8,3" Background="{Binding ProtocolBadgeColor}" HorizontalAlignment="Left">
@@ -632,7 +958,15 @@
                             </GridViewColumn>
 
                             <!-- Server Name Column -->
-                            <GridViewColumn Header="Server Name" Width="200">
+                            <GridViewColumn Width="200">
+                                <GridViewColumn.Header>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Tag="DisplayName">
+                                        <TextBlock Text="Server Name" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                        <ui:SymbolIcon Symbol="{Binding DataContext.NameSortIcon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.NameSortIconBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                    </StackPanel>
+                                </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="12.5"
@@ -642,7 +976,15 @@
                             </GridViewColumn>
 
                             <!-- Host Address Column -->
-                            <GridViewColumn Header="Endpoint" Width="180">
+                            <GridViewColumn Width="180">
+                                <GridViewColumn.Header>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Tag="Endpoint">
+                                        <TextBlock Text="Host / IP" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                        <ui:SymbolIcon Symbol="{Binding DataContext.EndpointSortIcon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.EndpointSortIconBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                    </StackPanel>
+                                </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
@@ -654,7 +996,15 @@
                             </GridViewColumn>
 
                             <!-- Credential Column -->
-                            <GridViewColumn Header="Credential Vault" Width="160">
+                            <GridViewColumn Width="170">
+                                <GridViewColumn.Header>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Tag="Credential">
+                                        <TextBlock Text="Credential Vault" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                        <ui:SymbolIcon Symbol="{Binding DataContext.CredentialSortIcon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.CredentialSortIconBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                    </StackPanel>
+                                </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -666,7 +1016,15 @@
                             </GridViewColumn>
 
                             <!-- Display Mode Column -->
-                            <GridViewColumn Header="Display Mode" Width="130">
+                            <GridViewColumn Width="140">
+                                <GridViewColumn.Header>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Tag="DisplayMode">
+                                        <TextBlock Text="Display Mode" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                        <ui:SymbolIcon Symbol="{Binding DataContext.DisplayModeSortIcon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.DisplayModeSortIconBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                    </StackPanel>
+                                </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Background="{DynamicResource ControlFillColorSecondaryBrush}" BorderBrush="{DynamicResource ControlElevationBorderBrush}"

@@ -470,6 +470,72 @@ public class DatabaseAndSecurityTests : IDisposable
         var exUnprotect = Assert.Throws<System.Security.Cryptography.CryptographicException>(() => crypto.Decrypt(validCipher));
         Assert.Contains("Failed to decrypt data using DPAPI", exUnprotect.Message);
     }
+
+    [Fact]
+    public async Task Test_Connection_IsBookmarked_And_SortOrder_Persistence()
+    {
+        await _db.InitializeAsync();
+
+        var item = new ConnectionItem
+        {
+            Name = "Special Bookmarked Server",
+            Host = "192.168.10.50",
+            Port = 22,
+            Protocol = ProtocolType.SSH,
+            IsBookmarked = true,
+            SortOrder = 7
+        };
+
+        await _db.SaveConnectionAsync(item);
+
+        var retrieved = await _db.GetConnectionByIdAsync(item.Id);
+        Assert.NotNull(retrieved);
+        Assert.True(retrieved.IsBookmarked);
+        Assert.Equal(7, retrieved.SortOrder);
+
+        // Update to unbookmarked
+        retrieved.IsBookmarked = false;
+        retrieved.SortOrder = 1;
+        await _db.SaveConnectionAsync(retrieved);
+
+        var updated = await _db.GetConnectionByIdAsync(item.Id);
+        Assert.NotNull(updated);
+        Assert.False(updated.IsBookmarked);
+        Assert.Equal(1, updated.SortOrder);
+    }
+
+    [Fact]
+    public async Task Test_UpdateConnectionsOrderAsync_UpdatesAllOrders()
+    {
+        await _db.InitializeAsync();
+
+        var c1 = new ConnectionItem { Name = "Server A", Host = "10.0.0.1", IsBookmarked = false, SortOrder = 0 };
+        var c2 = new ConnectionItem { Name = "Server B", Host = "10.0.0.2", IsBookmarked = true, SortOrder = 1 };
+        var c3 = new ConnectionItem { Name = "Server C", Host = "10.0.0.3", IsBookmarked = true, SortOrder = 2 };
+
+        await _db.SaveConnectionAsync(c1);
+        await _db.SaveConnectionAsync(c2);
+        await _db.SaveConnectionAsync(c3);
+
+        // Reorder list: c2 (order 0), c3 (order 1), c1 (order 2)
+        var reordered = new List<ConnectionItem> { c2, c3, c1 };
+        await _db.UpdateConnectionsOrderAsync(reordered);
+
+        var all = await _db.GetAllConnectionsAsync();
+        // GetAllConnectionsAsync returns ORDER BY IsBookmarked DESC, SortOrder ASC
+        Assert.Equal(3, all.Count);
+        Assert.Equal(c2.Id, all[0].Id);
+        Assert.Equal(0, all[0].SortOrder);
+        Assert.True(all[0].IsBookmarked);
+
+        Assert.Equal(c3.Id, all[1].Id);
+        Assert.Equal(1, all[1].SortOrder);
+        Assert.True(all[1].IsBookmarked);
+
+        Assert.Equal(c1.Id, all[2].Id);
+        Assert.Equal(2, all[2].SortOrder);
+        Assert.False(all[2].IsBookmarked);
+    }
 }
 
 

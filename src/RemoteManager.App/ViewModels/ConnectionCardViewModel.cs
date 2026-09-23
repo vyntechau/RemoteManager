@@ -37,6 +37,32 @@ public partial class ConnectionCardViewModel : ObservableObject
     [ObservableProperty]
     private bool _isPinging;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BookmarkTooltip))]
+    [NotifyPropertyChangedFor(nameof(BookmarkIconColor))]
+    private bool _isBookmarked;
+
+    public int SortOrder
+    {
+        get => Model.SortOrder;
+        set
+        {
+            if (Model.SortOrder != value)
+            {
+                Model.SortOrder = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string BookmarkTooltip => IsBookmarked ? "Remove Bookmark" : "Bookmark this server (pin to top)";
+    public string BookmarkIconColor => IsBookmarked ? "#FFB900" : "#8A8886";
+
+    partial void OnIsBookmarkedChanged(bool value)
+    {
+        Model.IsBookmarked = value;
+    }
+
     public Guid Id => Model.Id;
     public string DisplayName => Model.DisplayName;
     public string Name => Model.Name;
@@ -96,6 +122,7 @@ public partial class ConnectionCardViewModel : ObservableObject
     public ConnectionCardViewModel(ConnectionItem model, string? credentialTitle = null)
     {
         Model = model;
+        IsBookmarked = model.IsBookmarked;
         if (!string.IsNullOrWhiteSpace(credentialTitle))
         {
             CredentialTitle = credentialTitle;

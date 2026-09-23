@@ -274,4 +274,55 @@ public class ModelTests
         await card.PingAsync();
         Assert.Equal(RemoteManager.App.ViewModels.ConnectionPingStatus.Offline, card.PingStatus);
     }
+
+    [Fact]
+    public void ConnectionItem_IsBookmarkedAndSortOrder_DefaultAndClone()
+    {
+        var item = new ConnectionItem
+        {
+            Name = "Prod Server",
+            Host = "10.0.0.5",
+            IsBookmarked = true,
+            SortOrder = 42
+        };
+
+        Assert.True(item.IsBookmarked);
+        Assert.Equal(42, item.SortOrder);
+
+        var cloned = item.Clone();
+        Assert.NotEqual(item.Id, cloned.Id);
+        Assert.Equal("Prod Server (Copy)", cloned.Name);
+        Assert.True(cloned.IsBookmarked);
+        Assert.Equal(42, cloned.SortOrder);
+    }
+
+    [Fact]
+    public void ConnectionCardViewModel_BookmarkPropertiesAndToggle()
+    {
+        var item = new ConnectionItem
+        {
+            Name = "Db Server",
+            Host = "10.0.0.6",
+            IsBookmarked = false,
+            SortOrder = 3
+        };
+        var card = new RemoteManager.App.ViewModels.ConnectionCardViewModel(item);
+
+        Assert.False(card.IsBookmarked);
+        Assert.Equal(3, card.SortOrder);
+        Assert.Equal("Bookmark this server (pin to top)", card.BookmarkTooltip);
+        Assert.Equal("#8A8886", card.BookmarkIconColor);
+
+        // Toggle to true
+        card.IsBookmarked = true;
+        Assert.True(item.IsBookmarked);
+        Assert.Equal("Remove Bookmark", card.BookmarkTooltip);
+        Assert.Equal("#FFB900", card.BookmarkIconColor);
+
+        // Change sort order
+        card.SortOrder = 10;
+        Assert.Equal(10, item.SortOrder);
+
+        Assert.NotNull(Wpf.Ui.Controls.SymbolIcon.FilledProperty);
+    }
 }

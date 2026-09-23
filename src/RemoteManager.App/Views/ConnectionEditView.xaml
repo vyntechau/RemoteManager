@@ -342,6 +342,14 @@
                                     </StackPanel>
                                 </Border>
                             </Grid>
+
+                            <!-- Bookmark Option -->
+                            <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                    BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                                    CornerRadius="6" Padding="12,10" Margin="0,14,0,0">
+                                <CheckBox x:Name="IsBookmarkedCheckbox" Content="Bookmark this server (pin to show on top of lists)"
+                                          Foreground="White" Cursor="Hand"/>
+                            </Border>
                         </StackPanel>
                     </Border>
                 </StackPanel>
