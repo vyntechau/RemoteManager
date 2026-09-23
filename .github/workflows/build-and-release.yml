@@ -272,7 +272,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name || format('v{0}', needs.package.outputs.version) }}
-          name: Vyntech Remote Manager v${{ needs.package.outputs.version }}
+          name: ${{ github.ref_name || format('v{0}', needs.package.outputs.version) }}
           prerelease: ${{ github.event.inputs.is_prerelease == true }}
           generate_release_notes: true
           files: |
