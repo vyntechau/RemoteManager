@@ -612,8 +612,13 @@ public class MainViewModelTests : IDisposable
         public event Action? Connected;
 
         public bool DisconnectCalled { get; set; }
+        public bool FocusRdpCalled { get; set; }
         public void Connect(string server, int port, string? username, string? domain, string? password, int width = 1920, int height = 1080) { }
         public void Disconnect() => DisconnectCalled = true;
+        public void FocusRdp() => FocusRdpCalled = true;
+        public void SendCopy() { }
+        public void SendPaste() { }
+        public void SendCtrlAltDel() { }
         public void RaiseDisconnectRequested() => DisconnectRequested?.Invoke();
         public void RaiseConnected() => Connected?.Invoke();
         public void RaiseDisconnected(string description, int discReason, int extReason) => Disconnected?.Invoke(description, discReason, extReason);
@@ -888,6 +893,90 @@ public class MainViewModelTests : IDisposable
         // Confirmation was prompted, and user cancelled, so session remains active
         Assert.True(confirmationPrompted);
         Assert.Contains(session, _mainVm.ActiveSessions);
+    }
+
+    [Fact]
+    public async Task MainViewModel_ExportDataAsync_Triggers_RequestExportDialog()
+    {
+        bool dialogRequested = false;
+        IEnumerable<Guid>? receivedIds = null;
+        _mainVm.RequestExportDialog = ids =>
+        {
+            dialogRequested = true;
+            receivedIds = ids;
+            return Task.FromResult(true);
+        };
+
+        var targetId = Guid.NewGuid();
+        await _mainVm.ExportDataCommand.ExecuteAsync(new ConnectionItem { Id = targetId });
+
+        Assert.True(dialogRequested);
+        Assert.NotNull(receivedIds);
+        Assert.Contains(targetId, receivedIds);
+    }
+
+    [Fact]
+    public async Task MainViewModel_ImportDataAsync_Triggers_RequestImportDialog_And_Reloads()
+    {
+        await _db.InitializeAsync();
+        bool dialogRequested = false;
+        _mainVm.RequestImportDialog = async () =>
+        {
+            dialogRequested = true;
+            await _db.SaveConnectionAsync(new ConnectionItem { Name = "Imported Server", Host = "import.local" });
+            return true;
+        };
+
+        await _mainVm.ImportDataCommand.ExecuteAsync(null);
+
+        Assert.True(dialogRequested);
+        Assert.Contains(_mainVm.Connections, c => c.Name == "Imported Server");
+    }
+
+    [Fact]
+    public async Task MainViewModel_ExportConnectionToRdpAsync_Writes_File()
+    {
+        var tempRdp = Path.Combine(Path.GetTempPath(), $"TestExport_{Guid.NewGuid():N}.rdp");
+        try
+        {
+            _mainVm.RequestSaveFileDialog = _ => Task.FromResult<string?>(tempRdp);
+            var conn = new ConnectionItem { Name = "RDP Target", Host = "rdp.local", Port = 3389 };
+
+            await _mainVm.ExportConnectionToRdpCommand.ExecuteAsync(conn);
+
+            Assert.True(File.Exists(tempRdp));
+            var content = await File.ReadAllTextAsync(tempRdp);
+            Assert.Contains("full address:s:rdp.local:3389", content);
+        }
+        finally
+        {
+            if (File.Exists(tempRdp)) File.Delete(tempRdp);
+        }
+    }
+
+    [Fact]
+    public async Task ConnectionsViewModel_ExportImport_Commands_Forward_To_MainVm()
+    {
+        await _db.InitializeAsync();
+        bool exportTriggered = false;
+        bool importTriggered = false;
+
+        _mainVm.RequestExportDialog = _ =>
+        {
+            exportTriggered = true;
+            return Task.FromResult(true);
+        };
+        _mainVm.RequestImportDialog = () =>
+        {
+            importTriggered = true;
+            return Task.FromResult(true);
+        };
+
+        await _mainVm.ConnectionsVM.ExportDataCommand.ExecuteAsync(null);
+        await _mainVm.ConnectionsVM.ImportDataCommand.ExecuteAsync(null);
+
+        Assert.True(exportTriggered);
+        Assert.True(importTriggered);
     }
 }
 

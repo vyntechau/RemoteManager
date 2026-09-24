@@ -617,4 +617,31 @@ public class SqliteDatabaseService : IDatabaseService
         }
     }
     #endregion
+
+    #region Maintenance & Bulk
+    public async Task ClearAllDataAsync()
+    {
+        LogEngine.Instance.Info("Database", "Clearing all connections, credentials, and groups from database...");
+        try
+        {
+            using var conn = CreateConnection();
+            await conn.OpenAsync();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                PRAGMA foreign_keys = OFF;
+                DELETE FROM Connections;
+                DELETE FROM Credentials;
+                DELETE FROM Groups;
+                PRAGMA foreign_keys = ON;
+            ";
+            await cmd.ExecuteNonQueryAsync();
+            LogEngine.Instance.Info("Database", "Database tables cleared successfully.");
+        }
+        catch (Exception ex)
+        {
+            LogEngine.Instance.Error("Database", "Failed to clear database tables", ex);
+            throw;
+        }
+    }
+    #endregion
 }

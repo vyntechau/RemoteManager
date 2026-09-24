@@ -137,13 +137,15 @@ public static class RdpIsolatedLauncher
         sb.AppendLine("desktopheight:i:1080");
         sb.AppendLine("session bpp:i:32");
         sb.AppendLine("compression:i:1");
-        sb.AppendLine("keyboardhook:i:2");
+        sb.AppendLine("keyboardhook:i:1");
         sb.AppendLine("audiomode:i:0");
         sb.AppendLine("redirectprinters:i:0");
         sb.AppendLine("redirectcomports:i:0");
         sb.AppendLine("redirectsmartcards:i:0");
         sb.AppendLine("redirectclipboard:i:1");
         sb.AppendLine("redirectposdevices:i:0");
+        sb.AppendLine("redirectdrives:i:1");
+        sb.AppendLine("drivestoredirect:s:*");
         sb.AppendLine("autoreconnection enabled:i:1");
         sb.AppendLine("authentication level:i:2");
         sb.AppendLine("prompt for credentials:i:0");

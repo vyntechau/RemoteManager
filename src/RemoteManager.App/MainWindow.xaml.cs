@@ -9,6 +9,7 @@ using RemoteManager.Core.Logging;
 using RemoteManager.Core.Models;
 using RemoteManager.Data;
 using RemoteManager.Data.Security;
+using RemoteManager.Protocols.Rdp;
 using RemoteManager.Protocols.Vnc;
 
 namespace RemoteManager.App;
@@ -28,14 +29,7 @@ public partial class MainWindow : Window
 
         _viewModel.ActiveSessions.CollectionChanged += (s, e) =>
         {
-            if (_viewModel.ActiveSessions.Count == 0 && SessionsAndDashboardArea.Visibility == Visibility.Visible)
-            {
-                if (NavConnectionsItem != null) NavConnectionsItem.IsActive = true;
-            }
-            else if (_viewModel.ActiveSessions.Count > 0 && SessionsAndDashboardArea.Visibility == Visibility.Visible)
-            {
-                if (NavConnectionsItem != null) NavConnectionsItem.IsActive = false;
-            }
+            UpdateSidebarNavHighlight(_viewModel.SelectedSession);
         };
 
         SetupDialogHandlers(crypto);
@@ -45,17 +39,11 @@ public partial class MainWindow : Window
         {
             try
             {
-                if (_viewModel.ActiveSessions.Count == 0 && NavConnectionsItem != null)
-                {
-                    NavConnectionsItem.IsActive = true;
-                }
                 LogEngine.Instance.Info("App", "MainWindow loaded, initializing data...");
                 await _viewModel.InitializeAsync();
                 LogEngine.Instance.Info("App", "MainWindow and database initialized successfully.");
-                if (_viewModel.ActiveSessions.Count == 0 && NavConnectionsItem != null)
-                {
-                    NavConnectionsItem.IsActive = true;
-                }
+
+                OpenStartupTabs();
             }
             catch (Exception ex)
             {
@@ -74,7 +62,6 @@ public partial class MainWindow : Window
         };
     }
 
-    private Action? _previousViewNavigator;
 
     private void SetupDialogHandlers(DpapiEncryptionService crypto)
     {
@@ -106,6 +93,44 @@ public partial class MainWindow : Window
         _viewModel.RequestConfirmation = (title, message) =>
         {
             return ConfirmationDialog.ShowSimpleAsync(this, title, message, "Confirm", isDanger: true).GetAwaiter().GetResult();
+        };
+
+        // 5. Export Dialog
+        _viewModel.RequestExportDialog = (selectedIds) =>
+        {
+            var dlg = new ExportDialog(_viewModel.ExportImportService, selectedIds) { Owner = this };
+            var res = dlg.ShowDialog() == true;
+            if (res && dlg.WasExportSuccessful && !string.IsNullOrEmpty(dlg.ExportedFilePath))
+            {
+                MessageBox.Show($"Data successfully exported to:\n{dlg.ExportedFilePath}", "Export Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            return Task.FromResult(res);
+        };
+
+        // 6. Import Dialog
+        _viewModel.RequestImportDialog = async () =>
+        {
+            var dlg = new ImportDialog(_viewModel.ExportImportService) { Owner = this };
+            if (dlg.ShowDialog() == true && dlg.WasImportSuccessful && dlg.Result != null)
+            {
+                await _viewModel.LoadDataAsync();
+                MessageBox.Show(dlg.Result.SummaryText, "Import Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                return true;
+            }
+            return false;
+        };
+
+        // 7. Save File Dialog for RDP export
+        _viewModel.RequestSaveFileDialog = (defaultName) =>
+        {
+            var sfd = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Export RDP File",
+                Filter = "Remote Desktop Connection (*.rdp)|*.rdp|All Files (*.*)|*.*",
+                FileName = defaultName,
+                DefaultExt = ".rdp"
+            };
+            return Task.FromResult(sfd.ShowDialog(this) == true ? sfd.FileName : (string?)null);
         };
 
         // Wire ConnectionEditControl events
@@ -149,7 +174,12 @@ public partial class MainWindow : Window
                 {
                     ReturnToWorkspace();
                 }
-                if (_viewModel.SelectedSession?.Content is VncHostControl vnc)
+                UpdateSidebarNavHighlight(_viewModel.SelectedSession);
+                if (_viewModel.SelectedSession?.Content is IRdpHostControl rdp)
+                {
+                    Dispatcher.BeginInvoke(new Action(() => rdp.FocusRdp()), System.Windows.Threading.DispatcherPriority.Input);
+                }
+                else if (_viewModel.SelectedSession?.Content is VncHostControl vnc)
                 {
                     vnc.RefreshDesktop();
                 }
@@ -173,7 +203,11 @@ public partial class MainWindow : Window
                 }
                 _viewModel.SelectedSession = restoredSession;
                 SessionContentPresenter.Content = restoredSession.Content;
-                if (restoredSession.Content is VncHostControl vnc)
+                if (restoredSession.Content is IRdpHostControl restoredRdp)
+                {
+                    Dispatcher.BeginInvoke(new Action(() => restoredRdp.FocusRdp()), System.Windows.Threading.DispatcherPriority.Input);
+                }
+                else if (restoredSession.Content is VncHostControl vnc)
                 {
                     vnc.RefreshDesktop();
                 }
@@ -198,7 +232,11 @@ public partial class MainWindow : Window
                 }
                 _viewModel.SelectedSession = restoredSession;
                 SessionContentPresenter.Content = restoredSession.Content;
-                if (restoredSession.Content is VncHostControl vnc)
+                if (restoredSession.Content is IRdpHostControl restoredRdp)
+                {
+                    Dispatcher.BeginInvoke(new Action(() => restoredRdp.FocusRdp()), System.Windows.Threading.DispatcherPriority.Input);
+                }
+                else if (restoredSession.Content is VncHostControl vnc)
                 {
                     vnc.RefreshDesktop();
                 }
@@ -225,54 +263,35 @@ public partial class MainWindow : Window
 
     public void NavigateToConnectionEdit(ConnectionItem? existing, DpapiEncryptionService crypto)
     {
-        LogEngine.Instance.Info("UI", $"NavigateToConnectionEdit called (Existing: '{existing?.DisplayName ?? "New"}', HasActiveSessions: {HasActiveSessions()}).");
+        LogEngine.Instance.Info("UI", $"NavigateToConnectionEdit called (Existing: '{existing?.DisplayName ?? "New"}').");
         try
         {
-            if (HasActiveSessions())
+            var title = existing != null ? $"Edit: {existing.DisplayName}" : "New Connection";
+            var tag = existing != null ? $"EditConn_{existing.Id}" : "NewConnection";
+            OpenAsUtilityTab(title, tag, () =>
             {
-                var title = existing != null ? $"Edit: {existing.DisplayName}" : "New Connection";
-                var tag = existing != null ? $"EditConn_{existing.Id}" : "NewConnection";
-                OpenAsUtilityTab(title, tag, () =>
+                var ctrl = new ConnectionEditView();
+                ctrl.LoadConnection(existing, _viewModel.Credentials, crypto);
+                ctrl.ConnectionSaved += async (savedItem, inlineCred, andConnect) =>
                 {
-                    var ctrl = new ConnectionEditView();
-                    ctrl.LoadConnection(existing, _viewModel.Credentials, crypto);
-                    ctrl.ConnectionSaved += async (savedItem, inlineCred, andConnect) =>
+                    if (inlineCred != null)
                     {
-                        if (inlineCred != null)
-                        {
-                            await _viewModel.SaveAndReloadCredentialAsync(inlineCred);
-                            savedItem.CredentialId = inlineCred.Id;
-                        }
-                        await _viewModel.SaveAndReloadConnectionAsync(savedItem);
-                        CloseUtilityTab(tag);
-                        if (andConnect)
-                        {
-                            await _viewModel.ConnectAsync(savedItem);
-                        }
-                    };
-                    ctrl.CancelRequested += () =>
+                        await _viewModel.SaveAndReloadCredentialAsync(inlineCred);
+                        savedItem.CredentialId = inlineCred.Id;
+                    }
+                    await _viewModel.SaveAndReloadConnectionAsync(savedItem);
+                    CloseUtilityTab(tag);
+                    if (andConnect)
                     {
-                        CloseUtilityTab(tag);
-                    };
-                    return ctrl;
-                });
-                return;
-            }
-
-            // Capture current view as previous
-            if (ConnectionsPageArea.Visibility == Visibility.Visible)
-                _previousViewNavigator = () => OnNavConnectionsClick(this, new RoutedEventArgs());
-            else if (LogsPageArea.Visibility == Visibility.Visible)
-                _previousViewNavigator = () => OnNavLogsClick(this, new RoutedEventArgs());
-            else if (SettingsPageArea.Visibility == Visibility.Visible)
-                _previousViewNavigator = () => OnNavSettingsClick(this, new RoutedEventArgs());
-            else
-                _previousViewNavigator = () => ReturnToWorkspace();
-
-            HideAllPages();
-            ConnectionEditControl.LoadConnection(existing, _viewModel.Credentials, crypto);
-            ConnectionEditPageArea.Visibility = Visibility.Visible;
-            LogEngine.Instance.Info("UI", $"Navigated to Connection Edit page (Editing: '{existing?.DisplayName ?? "New"}').");
+                        await _viewModel.ConnectAsync(savedItem);
+                    }
+                };
+                ctrl.CancelRequested += () =>
+                {
+                    CloseUtilityTab(tag);
+                };
+                return ctrl;
+            });
         }
         catch (Exception ex)
         {
@@ -282,44 +301,26 @@ public partial class MainWindow : Window
 
     public void NavigateToCredentialEdit(Credential? existing, DpapiEncryptionService crypto)
     {
-        LogEngine.Instance.Info("UI", $"NavigateToCredentialEdit called (Existing: '{existing?.Title ?? "New"}', HasActiveSessions: {HasActiveSessions()}).");
+        LogEngine.Instance.Info("UI", $"NavigateToCredentialEdit called (Existing: '{existing?.Title ?? "New"}').");
         try
         {
-            if (HasActiveSessions())
+            var title = existing != null ? $"Edit: {existing.Title}" : "New Credential";
+            var tag = existing != null ? $"EditCred_{existing.Id}" : "NewCredential";
+            OpenAsUtilityTab(title, tag, () =>
             {
-                var title = existing != null ? $"Edit: {existing.Title}" : "New Credential";
-                var tag = existing != null ? $"EditCred_{existing.Id}" : "NewCredential";
-                OpenAsUtilityTab(title, tag, () =>
+                var ctrl = new CredentialEditView();
+                ctrl.LoadCredential(existing, crypto);
+                ctrl.CredentialSaved += async (savedCred) =>
                 {
-                    var ctrl = new CredentialEditView();
-                    ctrl.LoadCredential(existing, crypto);
-                    ctrl.CredentialSaved += async (savedCred) =>
-                    {
-                        await _viewModel.SaveAndReloadCredentialAsync(savedCred);
-                        CloseUtilityTab(tag);
-                    };
-                    ctrl.CancelRequested += () =>
-                    {
-                        CloseUtilityTab(tag);
-                    };
-                    return ctrl;
-                });
-                return;
-            }
-
-            if (ConnectionsPageArea.Visibility == Visibility.Visible)
-                _previousViewNavigator = () => OnNavConnectionsClick(this, new RoutedEventArgs());
-            else if (LogsPageArea.Visibility == Visibility.Visible)
-                _previousViewNavigator = () => OnNavLogsClick(this, new RoutedEventArgs());
-            else if (SettingsPageArea.Visibility == Visibility.Visible)
-                _previousViewNavigator = () => OnNavSettingsClick(this, new RoutedEventArgs());
-            else
-                _previousViewNavigator = () => ReturnToWorkspace();
-
-            HideAllPages();
-            CredentialEditControl.LoadCredential(existing, crypto);
-            CredentialEditPageArea.Visibility = Visibility.Visible;
-            LogEngine.Instance.Info("UI", $"Navigated to Credential Edit page (Editing: '{existing?.Title ?? "New"}').");
+                    await _viewModel.SaveAndReloadCredentialAsync(savedCred);
+                    CloseUtilityTab(tag);
+                };
+                ctrl.CancelRequested += () =>
+                {
+                    CloseUtilityTab(tag);
+                };
+                return ctrl;
+            });
         }
         catch (Exception ex)
         {
@@ -329,16 +330,7 @@ public partial class MainWindow : Window
 
     private void ReturnToPreviousView()
     {
-        if (_previousViewNavigator != null)
-        {
-            var nav = _previousViewNavigator;
-            _previousViewNavigator = null;
-            nav.Invoke();
-        }
-        else
-        {
-            ReturnToWorkspace();
-        }
+        ReturnToWorkspace();
     }
 
     public Task<bool> ShowConfirmationAsync(string title, string message)
@@ -371,10 +363,40 @@ public partial class MainWindow : Window
     {
         HideAllPages();
         SessionsAndDashboardArea.Visibility = Visibility.Visible;
-        if (_viewModel?.ActiveSessions.Count == 0 && NavConnectionsItem != null)
+        UpdateSidebarNavHighlight(_viewModel?.SelectedSession);
+    }
+
+    private void UpdateSidebarNavHighlight(SessionTabViewModel? session)
+    {
+        bool isConn = session != null && session.IsUtilityTab && session.UtilityTabTag == "Connections";
+        bool isLogs = session != null && session.IsUtilityTab && session.UtilityTabTag == "Logs";
+        bool isSettings = session != null && session.IsUtilityTab && session.UtilityTabTag == "Settings";
+        bool isAbout = session != null && session.IsUtilityTab && session.UtilityTabTag == "About";
+
+        if (session == null && (_viewModel == null || _viewModel.ActiveSessions.Count == 0))
         {
-            NavConnectionsItem.IsActive = true;
+            isConn = true;
         }
+
+        if (NavConnectionsItem != null) NavConnectionsItem.IsActive = isConn;
+        if (NavLogsItem != null) NavLogsItem.IsActive = isLogs;
+        if (NavSettingsItem != null) NavSettingsItem.IsActive = isSettings;
+        if (NavAboutItem != null) NavAboutItem.IsActive = isAbout;
+    }
+
+    /// <summary>
+    /// Opens the Connections Hub as a tab on application startup.
+    /// </summary>
+    public void OpenStartupTabs()
+    {
+        OpenAsUtilityTab("Connections", "Connections", () =>
+        {
+            var view = new ConnectionsView();
+            view.DataContext = _viewModel.ConnectionsVM;
+            return view;
+        }, selectTab: true);
+
+        UpdateSidebarNavHighlight(_viewModel.SelectedSession);
     }
 
     private void OnNavConnectionsClick(object sender, RoutedEventArgs e)
@@ -386,53 +408,29 @@ public partial class MainWindow : Window
             return view;
         });
 
-        if (NavConnectionsItem != null) NavConnectionsItem.IsActive = true;
+        UpdateSidebarNavHighlight(_viewModel.SelectedSession);
         LogEngine.Instance.Info("UI", "Navigated to Connections tab.");
     }
 
     private void OnNavLogsClick(object sender, RoutedEventArgs e)
     {
-        if (HasActiveSessions())
-        {
-            OpenAsUtilityTab("Logs", "Logs", () => new LogsView());
-            return;
-        }
-
-        HideAllPages();
-        LogsPageArea.Visibility = Visibility.Visible;
-
-        if (NavLogsItem != null) NavLogsItem.IsActive = true;
-        LogEngine.Instance.Info("UI", "Navigated to Logs page.");
+        OpenAsUtilityTab("Logs", "Logs", () => new LogsView());
+        UpdateSidebarNavHighlight(_viewModel.SelectedSession);
+        LogEngine.Instance.Info("UI", "Navigated to Logs tab.");
     }
 
     private void OnNavSettingsClick(object sender, RoutedEventArgs e)
     {
-        if (HasActiveSessions())
-        {
-            OpenAsUtilityTab("Settings", "Settings", () => new SettingsView());
-            return;
-        }
-
-        HideAllPages();
-        SettingsPageArea.Visibility = Visibility.Visible;
-
-        if (NavSettingsItem != null) NavSettingsItem.IsActive = true;
-        LogEngine.Instance.Info("UI", "Navigated to Settings page.");
+        OpenAsUtilityTab("Settings", "Settings", () => new SettingsView());
+        UpdateSidebarNavHighlight(_viewModel.SelectedSession);
+        LogEngine.Instance.Info("UI", "Navigated to Settings tab.");
     }
 
     public void NavigateToAbout()
     {
-        if (HasActiveSessions())
-        {
-            OpenAsUtilityTab("About", "About", () => new AboutView { DataContext = _viewModel });
-            return;
-        }
-
-        HideAllPages();
-        AboutPageArea.Visibility = Visibility.Visible;
-
-        if (NavAboutItem != null) NavAboutItem.IsActive = true;
-        LogEngine.Instance.Info("UI", "Navigated to About page.");
+        OpenAsUtilityTab("About", "About", () => new AboutView { DataContext = _viewModel });
+        UpdateSidebarNavHighlight(_viewModel.SelectedSession);
+        LogEngine.Instance.Info("UI", "Navigated to About tab.");
     }
 
     private void OnNavAboutClick(object sender, RoutedEventArgs e)
@@ -470,13 +468,16 @@ public partial class MainWindow : Window
     /// Opens a page as a utility tab in the session tab bar.
     /// If a tab with the same tag already exists, selects it instead of creating a duplicate.
     /// </summary>
-    private void OpenAsUtilityTab(string title, string tag, Func<System.Windows.Controls.UserControl> viewFactory)
+    private void OpenAsUtilityTab(string title, string tag, Func<System.Windows.Controls.UserControl> viewFactory, bool selectTab = true)
     {
         // Reuse existing tab if already open
         var existing = _viewModel.ActiveSessions.FirstOrDefault(s => s.IsUtilityTab && s.UtilityTabTag == tag);
         if (existing != null)
         {
-            _viewModel.SelectedSession = existing;
+            if (selectTab)
+            {
+                _viewModel.SelectedSession = existing;
+            }
             LogEngine.Instance.Debug("UI", $"Utility tab '{tag}' already open, switching to it.");
             return;
         }
@@ -496,7 +497,10 @@ public partial class MainWindow : Window
         };
 
         _viewModel.ActiveSessions.Add(tab);
-        _viewModel.SelectedSession = tab;
+        if (selectTab)
+        {
+            _viewModel.SelectedSession = tab;
+        }
 
         // Ensure sessions area is visible
         ReturnToWorkspace();

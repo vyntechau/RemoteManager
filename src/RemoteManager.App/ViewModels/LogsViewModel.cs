@@ -316,9 +316,10 @@ public partial class LogsViewModel : ObservableObject
 
     internal Func<string?> SaveFilePathProvider { get; set; } = DefaultSaveFilePathProvider;
     internal static Func<ProcessStartInfo, Process?> ProcessLauncher { get; set; } = psi => Process.Start(psi);
+    internal static Func<System.Windows.Threading.Dispatcher?> DispatcherProvider { get; set; } = () => Application.Current?.Dispatcher;
     internal Action<Action> SafeDispatch { get; set; } = action =>
     {
-        var dispatcher = Application.Current?.Dispatcher;
+        var dispatcher = DispatcherProvider();
         if (dispatcher != null && dispatcher.Thread.IsAlive && !dispatcher.HasShutdownStarted && !dispatcher.CheckAccess())
         {
             dispatcher.BeginInvoke(action);

@@ -49,6 +49,11 @@ public class RdpHostControl : ContentControl, IRdpHostControl
     private static extern IntPtr SetFocus(IntPtr hWnd);
 
     [DllImport("user32.dll")]
+    private static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+
+    private const uint GW_CHILD = 5;
+
+    [DllImport("user32.dll")]
     private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
     private const uint KEYEVENTF_KEYUP = 0x0002;
@@ -165,6 +170,74 @@ public class RdpHostControl : ContentControl, IRdpHostControl
         _host = new WindowsFormsHost();
         _rdpClient = new RdpAxClient();
         _host.Child = _rdpClient;
+
+        // Auto-transfer Win32 focus to the native RDP ActiveX control whenever the control is clicked or focused
+        _host.GotFocus += (s, e) => FocusRdp();
+        _host.MouseDown += (s, e) => FocusRdp();
+        _host.PreviewMouseDown += (s, e) => FocusRdp();
+        _rdpClient.GotFocus += (s, e) => FocusRdp();
+        _rdpClient.Click += (s, e) => FocusRdp();
+        _rdpClient.HandleCreated += (s, e) => FocusRdp();
+        Loaded += (s, e) => FocusRdp();
+        GotFocus += (s, e) => FocusRdp();
+        PreviewMouseDown += (s, e) =>
+        {
+            if (!_toolBar.IsMouseOver)
+            {
+                FocusRdp();
+            }
+        };
+
+        // Enable file drag-and-drop: dragging files onto the RDP session places them onto the clipboard
+        // and focuses the RDP session so they can be pasted immediately via Ctrl+V or right-click Paste.
+        AllowDrop = true;
+        PreviewDragOver += (s, e) =>
+        {
+            if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop))
+            {
+                e.Effects = System.Windows.DragDropEffects.Copy;
+                e.Handled = true;
+            }
+        };
+        PreviewDrop += (s, e) =>
+        {
+            if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop))
+            {
+                if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is string[] files && files.Length > 0)
+                {
+                    var fileDropList = new System.Collections.Specialized.StringCollection();
+                    fileDropList.AddRange(files);
+                    System.Windows.Clipboard.SetFileDropList(fileDropList);
+                    LogEngine.Instance.Info("Protocol.RDP", $"Files placed on clipboard via drag-and-drop ({files.Length} items). Ready to paste into remote session.");
+                    FocusRdp();
+                    e.Handled = true;
+                }
+            }
+        };
+
+        _rdpClient.AllowDrop = true;
+        _rdpClient.DragEnter += (s, e) =>
+        {
+            if (e.Data != null && e.Data.GetDataPresent(System.Windows.Forms.DataFormats.FileDrop))
+            {
+                e.Effect = System.Windows.Forms.DragDropEffects.Copy;
+            }
+        };
+        _rdpClient.DragDrop += (s, e) =>
+        {
+            if (e.Data != null && e.Data.GetDataPresent(System.Windows.Forms.DataFormats.FileDrop))
+            {
+                if (e.Data.GetData(System.Windows.Forms.DataFormats.FileDrop) is string[] files && files.Length > 0)
+                {
+                    var fileDropList = new System.Collections.Specialized.StringCollection();
+                    fileDropList.AddRange(files);
+                    System.Windows.Clipboard.SetFileDropList(fileDropList);
+                    LogEngine.Instance.Info("Protocol.RDP", $"Files placed on clipboard via WinForms drag-drop ({files.Length} items). Ready to paste into remote session.");
+                    FocusRdp();
+                }
+            }
+        };
+
         Grid.SetRow(_host, 1);
         mainGrid.Children.Add(_host);
 
@@ -327,6 +400,7 @@ public class RdpHostControl : ContentControl, IRdpHostControl
                 _host.Visibility = Visibility.Visible;
                 _statusTextBlock.Text = $"Connected to {_lastServer}:{_lastPort}";
                 _statusTextBlock.Foreground = new SolidColorBrush(MediaColor.FromArgb(200, 255, 255, 255));
+                FocusRdp();
                 Connected?.Invoke();
             });
         };
@@ -433,16 +507,36 @@ public class RdpHostControl : ContentControl, IRdpHostControl
         Disconnected?.Invoke(description, discReason, extReason);
     }
 
+    public void FocusRdp()
+    {
+        try
+        {
+            _host.Focus();
+            if (_rdpClient.IsHandleCreated)
+            {
+                _rdpClient.Focus();
+                IntPtr target = _rdpClient.Handle;
+                IntPtr child = GetWindow(target, GW_CHILD);
+                if (child != IntPtr.Zero)
+                {
+                    IntPtr grandChild = GetWindow(child, GW_CHILD);
+                    target = grandChild != IntPtr.Zero ? grandChild : child;
+                }
+                SetFocus(target);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogEngine.Instance.Debug("Protocol.RDP", $"FocusRdp error: {ex.Message}");
+        }
+    }
+
     public void SendCtrlAltDel()
     {
         try
         {
             LogEngine.Instance.Info("Protocol.RDP", "Sending Ctrl+Alt+Del (via Ctrl+Alt+End) to remote RDP machine.");
-            _host.Focus();
-            if (_rdpClient.IsHandleCreated)
-            {
-                SetFocus(_rdpClient.Handle);
-            }
+            FocusRdp();
             Thread.Sleep(50);
             keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
             keybd_event(VK_MENU, 0, 0, UIntPtr.Zero);
@@ -462,11 +556,7 @@ public class RdpHostControl : ContentControl, IRdpHostControl
         try
         {
             LogEngine.Instance.Info("Protocol.RDP", "Sending Copy (Ctrl+C) to remote RDP machine.");
-            _host.Focus();
-            if (_rdpClient.IsHandleCreated)
-            {
-                SetFocus(_rdpClient.Handle);
-            }
+            FocusRdp();
             Thread.Sleep(50);
             keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
             keybd_event(VK_C, 0, 0, UIntPtr.Zero);
@@ -484,11 +574,7 @@ public class RdpHostControl : ContentControl, IRdpHostControl
         try
         {
             LogEngine.Instance.Info("Protocol.RDP", "Sending Paste (Ctrl+V) to remote RDP machine.");
-            _host.Focus();
-            if (_rdpClient.IsHandleCreated)
-            {
-                SetFocus(_rdpClient.Handle);
-            }
+            FocusRdp();
             Thread.Sleep(50);
             keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
             keybd_event(VK_V, 0, 0, UIntPtr.Zero);

@@ -129,6 +129,8 @@ public partial class ConnectionCardViewModel : ObservableObject
         }
     }
 
+    internal int PingTimeoutMs { get; set; } = 2500;
+
     [RelayCommand]
     public async Task PingAsync()
     {
@@ -141,7 +143,7 @@ public partial class ConnectionCardViewModel : ObservableObject
         var sw = Stopwatch.StartNew();
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
+            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(PingTimeoutMs));
             using var client = new TcpClient();
             
             await client.ConnectAsync(Model.Host, Model.Port, cts.Token);

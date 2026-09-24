@@ -232,6 +232,14 @@
                                                          <MenuItem Header="Edit"
                                                                    Command="{Binding PlacementTarget.Tag.EditConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                                    CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                         <Separator/>
+                                                         <MenuItem Header="Export as RDP File..."
+                                                                   Command="{Binding PlacementTarget.Tag.ExportConnectionToRdpCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                         <MenuItem Header="Export Server (JSON)..."
+                                                                   Command="{Binding PlacementTarget.Tag.ExportDataCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                         <Separator/>
                                                          <MenuItem Header="Delete"
                                                                    Command="{Binding PlacementTarget.Tag.DeleteConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                                    CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
@@ -601,7 +609,7 @@
                                                         <ui:SymbolIcon.Style>
                                                             <Style TargetType="ui:SymbolIcon">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
-                                                                <Setter Property="Symbol" Value="Settings24"/>
+                                                                <Setter Property="Symbol" Value="Edit24"/>
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsUtilityTab}" Value="True">
                                                                         <Setter Property="Visibility" Value="Visible"/>

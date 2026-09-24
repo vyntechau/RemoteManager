@@ -810,4 +810,22 @@ public partial class ConnectionsViewModel : ObservableObject
         _mainViewModel.QuickConnectProtocol = QuickProtocol;
         await _mainViewModel.QuickConnectAsync();
     }
+
+    [RelayCommand]
+    public async Task ExportDataAsync(object? parameter = null)
+    {
+        await _mainViewModel.ExportDataAsync(parameter);
+    }
+
+    [RelayCommand]
+    public async Task ImportDataAsync()
+    {
+        await _mainViewModel.ImportDataAsync();
+    }
+
+    [RelayCommand]
+    public async Task ExportConnectionToRdpAsync(object? parameter)
+    {
+        await _mainViewModel.ExportConnectionToRdpAsync(parameter);
+    }
 }

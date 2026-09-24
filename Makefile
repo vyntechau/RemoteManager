@@ -9,7 +9,7 @@ SHELL := powershell.exe
 .SHELLFLAGS := -NoProfile -ExecutionPolicy Bypass -Command
 
 CONFIGURATION ?= Release
-VERSION ?= 1.0.0
+VERSION ?= 1.2.0
 OUTPUT_DIR ?= artifacts
 
 .PHONY: help all build test exe msi package clean restore

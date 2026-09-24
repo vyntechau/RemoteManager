@@ -461,6 +461,51 @@ public class ProtocolInfoTests
             RdpIsolatedLauncher.ProcessLauncher = prev;
         }
     }
+
+    [Fact]
+    public void RdpIsolatedLauncher_GenerateTempRdpFile_EnablesClipboardAndRemoteKeyboardHook()
+    {
+        var tempFile = RdpIsolatedLauncher.GenerateTempRdpFile("192.168.1.100:3389", "Administrator", "WORKGROUP", fullScreen: false);
+        try
+        {
+            Assert.True(File.Exists(tempFile));
+            var content = File.ReadAllText(tempFile);
+
+            // Clipboard redirection virtual channel must be enabled
+            Assert.Contains("redirectclipboard:i:1", content);
+            // Keyboard hook must be 1 (remote computer) so shortcuts like Ctrl+C, Ctrl+V, Alt+Tab are forwarded
+            Assert.Contains("keyboardhook:i:1", content);
+            // Drive redirection must be enabled to support copying and pasting files
+            Assert.Contains("redirectdrives:i:1", content);
+            Assert.Contains("drivestoredirect:s:*", content);
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
+#pragma warning disable CS0067
+    private class DefaultRdpControl : IRdpHostControl
+    {
+        public event Action? DisconnectRequested;
+        public event Action<string, int, int>? Disconnected;
+        public event Action? Connected;
+        public void Connect(string server, int port, string? username, string? domain, string? password, int width = 1920, int height = 1080) { }
+        public void Disconnect() { }
+    }
+#pragma warning restore CS0067
+
+    [Fact]
+    public void IRdpHostControl_DefaultInterfaceMethods_CanBeInvokedWithoutExceptions()
+    {
+        IRdpHostControl control = new DefaultRdpControl();
+        // Invoke default interface methods
+        control.FocusRdp();
+        control.SendCopy();
+        control.SendPaste();
+        control.SendCtrlAltDel();
+    }
 }
 
 

@@ -12,6 +12,10 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        // Enable Windows Forms interop to ensure keyboard accelerators (Ctrl+C, Ctrl+V, Tab, shortcuts)
+        // are properly routed to embedded Win32/ActiveX controls (RdpAxClient)
+        System.Windows.Forms.Integration.WindowsFormsHost.EnableWindowsFormsInterop();
+
         var logger = LogEngine.Instance;
         logger.Info("App", $"=== RemoteManager starting at {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===");
         logger.Info("App", $"OS: {Environment.OSVersion}, 64-bit: {Environment.Is64BitOperatingSystem}, .NET: {Environment.Version}");

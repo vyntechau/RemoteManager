@@ -1,0 +1,184 @@
+<Window x:Class="RemoteManager.App.Views.ImportDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Import Connections &amp; Data"
+        Width="580" Height="640"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource ApplicationBackgroundBrush}">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
+
+    <Grid Margin="24,20,24,20">
+        <Grid.RowDefinitions>
+            <!-- Header -->
+            <RowDefinition Height="Auto"/>
+            <!-- Content -->
+            <RowDefinition Height="*"/>
+            <!-- Footer -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 1. HEADER -->
+        <Border Grid.Row="0" Margin="0,0,0,16" Padding="0,0,0,12"
+                BorderThickness="0,0,0,1" BorderBrush="{DynamicResource ControlElevationBorderBrush}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Width="40" Height="40" CornerRadius="8" Margin="0,0,14,0"
+                        Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1">
+                    <ui:SymbolIcon Symbol="ArrowUpload24" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Import Data &amp; Profiles" FontSize="18" FontWeight="Bold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    <TextBlock Text="Import from RemoteManager JSON backup, CSV spreadsheet, or .rdp files"
+                               FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- 2. CONTENT -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,16">
+            <StackPanel>
+                <!-- File Picker -->
+                <TextBlock Text="SELECT SOURCE FILE" FontSize="11" FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,8"/>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ui:TextBox Grid.Column="0" x:Name="FilePathTextBox" IsReadOnly="True"
+                                PlaceholderText="Choose a .json, .csv, or .rdp file to import..."
+                                Height="34" Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="Browse..." Click="OnBrowseClick" Height="34" Padding="14,0" Cursor="Hand"/>
+                </Grid>
+
+                <!-- File Summary & Details Panel (Visible once file is selected) -->
+                <StackPanel x:Name="FileDetailsPanel" Visibility="Collapsed">
+                    <!-- Detected Type Banner -->
+                    <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="14,12" Margin="0,0,0,16">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
+                                <Border x:Name="FormatBadge" Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                        CornerRadius="4" Padding="8,2" Margin="0,0,10,0">
+                                    <TextBlock x:Name="FormatBadgeText" Text="JSON Backup" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                                </Border>
+                                <TextBlock x:Name="FileSummaryText" Text="Ready to import" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock x:Name="FileDetailText" Text="" FontSize="11"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Passphrase Input (Visible if encrypted) -->
+                    <Border x:Name="EncryptedPassphrasePanel" Background="#150078D4" BorderBrush="#350078D4" BorderThickness="1"
+                            CornerRadius="8" Padding="14,12" Margin="0,0,0,16" Visibility="Collapsed">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <ui:SymbolIcon Symbol="Key24" FontSize="16" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,8,0"/>
+                                <TextBlock Text="Master Passphrase Required" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            </StackPanel>
+                            <TextBlock Text="This backup package is encrypted. Enter the passphrase specified during export:"
+                                       FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
+                            <ui:PasswordBox x:Name="ImportPassphraseBox" Height="32"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Conflict Resolution -->
+                    <TextBlock Text="CONFLICT RESOLUTION" FontSize="11" FontWeight="Bold"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,8"/>
+
+                    <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="14,12" Margin="0,0,0,16">
+                        <StackPanel>
+                            <RadioButton x:Name="ConflictMergeRadio" IsChecked="True" Margin="0,0,0,8" Cursor="Hand">
+                                <StackPanel Margin="6,0,0,0">
+                                    <TextBlock Text="Merge and keep existing (Recommended)" FontWeight="SemiBold" FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <TextBlock Text="Import new items. Existing connections and credentials remain unchanged."
+                                               FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
+
+                            <Rectangle Height="1" Fill="{DynamicResource ControlElevationBorderBrush}" Margin="0,4,0,8"/>
+
+                            <RadioButton x:Name="ConflictOverwriteRadio" Margin="0,0,0,8" Cursor="Hand">
+                                <StackPanel Margin="6,0,0,0">
+                                    <TextBlock Text="Overwrite existing" FontWeight="SemiBold" FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <TextBlock Text="Update matching connections or credentials with imported values."
+                                               FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
+
+                            <Rectangle Height="1" Fill="{DynamicResource ControlElevationBorderBrush}" Margin="0,4,0,8"/>
+
+                            <RadioButton x:Name="ConflictReplaceRadio" Cursor="Hand">
+                                <StackPanel Margin="6,0,0,0">
+                                    <TextBlock Text="Clean and replace all data" FontWeight="SemiBold" FontSize="12"
+                                               Foreground="#EF4444"/>
+                                    <TextBlock Text="Caution: Clears current database and replaces everything with the backup."
+                                               FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Checkboxes for JSON -->
+                    <StackPanel x:Name="JsonContentSelectionPanel">
+                        <TextBlock Text="ITEMS TO IMPORT" FontSize="11" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,8"/>
+
+                        <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                                CornerRadius="8" Padding="14,10" Margin="0,0,0,16">
+                            <StackPanel>
+                                <CheckBox x:Name="ImportConnectionsCheckBox" IsChecked="True" Margin="0,2" Cursor="Hand">
+                                    <TextBlock Text="Connections" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="6,0,0,0"/>
+                                </CheckBox>
+                                <CheckBox x:Name="ImportGroupsCheckBox" IsChecked="True" Margin="0,3" Cursor="Hand">
+                                    <TextBlock Text="Connection Groups" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="6,0,0,0"/>
+                                </CheckBox>
+                                <CheckBox x:Name="ImportCredentialsCheckBox" IsChecked="True" Margin="0,3" Cursor="Hand">
+                                    <TextBlock Text="Credentials &amp; Accounts" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="6,0,0,0"/>
+                                </CheckBox>
+                                <CheckBox x:Name="ImportSettingsCheckBox" IsChecked="False" Margin="0,2" Cursor="Hand">
+                                    <TextBlock Text="Application Settings" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="6,0,0,0"/>
+                                </CheckBox>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Error Message Banner -->
+                <Border x:Name="ErrorBanner" Background="#30EF4444" BorderBrush="#EF4444" BorderThickness="1"
+                        CornerRadius="6" Padding="12,10" Margin="0,0,0,12" Visibility="Collapsed">
+                    <TextBlock x:Name="ErrorText" Text="" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap"/>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 3. FOOTER ACTIONS -->
+        <Border Grid.Row="2" Padding="0,12,0,0"
+                BorderThickness="0,1,0,0" BorderBrush="{DynamicResource ControlElevationBorderBrush}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancel" Click="OnCancelClick"
+                        Width="90" Height="32" Margin="0,0,10,0" Cursor="Hand"/>
+                <ui:Button x:Name="ImportButton" Content="Import" Appearance="Primary" Click="OnImportClick"
+                           IsEnabled="False" Width="110" Height="32" Cursor="Hand"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

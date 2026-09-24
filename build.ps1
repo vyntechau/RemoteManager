@@ -59,10 +59,10 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
             $Version = $Matches[1]
             if ($Version.Split('.').Length -eq 2) { $Version = "$Version.0" }
         } else {
-            $Version = "1.0.0"
+            $Version = "1.2.0"
         }
     } catch {
-        $Version = "1.0.0"
+        $Version = "1.2.0"
     }
 }
 $Version = $Version.TrimStart('v')

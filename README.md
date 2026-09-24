@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 8" />
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6?logo=windows&logoColor=white" alt="Windows" />
   <img src="https://img.shields.io/badge/UI-Fluent%20WPF--UI-0078D4" alt="WPF-UI" />
-  <img src="https://img.shields.io/badge/Tests-190%20Passed-brightgreen?logo=github-actions&logoColor=white" alt="190 Tests Passed" />
+  <img src="https://img.shields.io/badge/Tests-238%20Passed-brightgreen?logo=github-actions&logoColor=white" alt="238 Tests Passed" />
   <img src="https://img.shields.io/badge/Coverage-100%25-brightgreen" alt="100% Line Coverage" />
   <img src="https://img.shields.io/badge/Installer-WiX%20Toolset%20v5-FF8800" alt="WiX Toolset" />
   <img src="https://img.shields.io/badge/Security-Windows%20DPAPI-success" alt="DPAPI" />
@@ -47,6 +47,7 @@ Because Credential Manager only stores **a single credential per target key**, c
   * **Detached Windows**: Pop out any tab into an independent window with one click, and dock it back whenever you want.
   * **External Launcher**: Direct launch into native `mstsc.exe` with dynamically injected isolated credentials and automatic teardown.
 * **In-App GitHub Release Updates**: Automatic startup version checks, real-time right-aligned footer status, interactive updates center in About, and 1-click installer upgrades with SHA-256 checksum verification.
+* **Export & Import Management**: Full-fidelity JSON backups with optional military-grade AES-256-GCM master passphrase protection, CSV spreadsheet export/import, individual and batch `.rdp` file import/export, and flexible conflict resolution (Merge, Overwrite, Clean & Replace).
 * **System Theme by Default**: Natively adapts to your Windows light or dark mode in real time.
 
 ---
@@ -207,7 +208,7 @@ When built, release artifacts are generated into the `artifacts/` folder:
   - Full integration with Windows **Installed apps / Add or remove programs** (ARP)
   - Supports silent enterprise rollout:
     ```cmd
-    msiexec /i RemoteManager-v1.0.0-win-x64-Setup.msi /qn
+    msiexec /i RemoteManager-v1.2.0-win-x64-Setup.msi /qn
     ```
 - **`checksums.txt`**: SHA-256 integrity verification hashes for all built assets.
 
@@ -219,7 +220,7 @@ Standard cross-environment build commands:
 # Display help and all available targets
 make help
 
-# Run all 190 unit tests
+# Run all 216 unit tests
 make test
 
 # Publish self-contained portable EXE and create portable ZIP
@@ -239,13 +240,13 @@ make clean
 Native Windows automation script:
 ```powershell
 # Build everything (Tests, Portable ZIP, MSI installer, and SHA-256 checksums)
-.\build.ps1 -Target All -Version 1.0.0
+.\build.ps1 -Target All -Version 1.2.0
 
 # Build single-file portable EXE & ZIP only
 .\build.ps1 -Target Exe
 
 # Build Windows Installer MSI only (auto-generates version from git tag or parameter)
-.\build.ps1 -Target Msi -Version 1.0.0
+.\build.ps1 -Target Msi -Version 1.2.0
 
 # Run automated unit test suite
 .\build.ps1 -Target Test
@@ -258,24 +259,23 @@ Native Windows automation script:
 
 ## 🧪 Testing & Code Quality Architecture
 
-RemoteManager enforces enterprise-grade engineering standards with an exhaustive automated test suite. The project features **190 unit and integration tests** reaching **100.00% line coverage** across every domain assembly:
+RemoteManager enforces enterprise-grade engineering standards with an exhaustive automated test suite. The project features **238 unit and integration tests** reaching **100.00% line coverage** across every domain assembly:
 
 ```text
 ========================================================
  RemoteManager Test Coverage Summary
 ========================================================
-Overall Line Coverage   : 100.00% (2,463 / 2,463 lines)
-Overall Branch Coverage : 88.12%  (653 / 741 branches)
+Overall Line Coverage   : 100.00% (4,308 / 4,308 lines)
 ========================================================
 ```
 
-| Assembly | Line Coverage | Branches | Test Scope & Core Focus |
-| :--- | :---: | :---: | :--- |
-| **`RemoteManager.App`** | **100.00%** | 89.84% | Full MVVM ViewModel lifecycles (`MainViewModel`, `ConnectionsViewModel`, `LogsViewModel`, `SessionTabViewModel`), tab hosting, UI commands, ping batching, dispatcher safety |
-| **`RemoteManager.Core`** | **100.00%** | 94.36% | Connection validation, protocol rules, settings configuration, high-throughput asynchronous `LogEngine` channel reader/writer |
-| **`RemoteManager.Data`** | **100.00%** | 92.30% | SQLite storage operations, table creation, schema migrations, and Windows DPAPI cryptographic security services |
-| **`RemoteManager.Protocols`** | **100.00%** | 79.08% | SSH client auto-detection (OpenSSH, PuTTY, KiTTY), VNC client resolution, argument masking, and session launching |
-| **Total Solution** | **100.00%** | **88.12%** | **Complete coverage across all 2,463 executable lines** |
+| Assembly | Line Coverage | Test Scope & Core Focus |
+| :--- | :---: | :--- |
+| **`RemoteManager.App`** | **100.00%** | Full MVVM ViewModel lifecycles (`MainViewModel`, `ConnectionsViewModel`, `LogsViewModel`, `SessionTabViewModel`), tab hosting, UI commands, ping batching, dispatcher safety, in-app update checks, and import/export dialog management |
+| **`RemoteManager.Core`** | **100.00%** | Full-fidelity JSON, CSV, and RDP export & import serialization engines, AES-256-GCM PBKDF2 passphrase encryption, GitHub release update checking & checksum verification, connection validation, protocol rules, settings configuration, and high-throughput asynchronous `LogEngine` channel reader/writer |
+| **`RemoteManager.Data`** | **100.00%** | SQLite storage operations, table creation, schema migrations, and Windows DPAPI cryptographic security services |
+| **`RemoteManager.Protocols`** | **100.00%** | SSH client auto-detection (OpenSSH, PuTTY, KiTTY), VNC client resolution, argument masking, and session launching |
+| **Total Solution** | **100.00%** | **Complete coverage across all 4,308 executable lines** |
 
 ### Architecture & Test Isolation Principles
 - **COM & ActiveX Abstraction**: High-level interface contracts (`IRdpHostControl`, `IVncHostControl`, `IWebViewSessionControl`) allow testing tab session lifecycles, sizing, and reconnection flows without hardware-dependent COM registrations.
@@ -296,7 +296,7 @@ Job 1: Run Tests ─┤                                          ├──> Job 
 ```
 
 - **Job 1: `test` (Unit & Integration Tests)**:
-  - Executes all 190 automated unit tests (`dotnet test`) with a 15-minute strict timeout to deliver fast feedback on PRs and pushes.
+  - Executes all 238 automated unit tests (`dotnet test`) with a 15-minute strict timeout to deliver fast feedback on PRs and pushes.
 - **Job 2: `build-portable` (Portable ZIP)**:
   - Runs in parallel after `test` succeeds; publishes the self-contained single-file win-x64 binary and portable ZIP.
 - **Job 3: `build-installer` (WiX v5 MSI)**:

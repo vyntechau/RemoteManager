@@ -34,11 +34,7 @@ public class GitHubUpdateService : IUpdateService
     {
         var asm = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
         var ver = asm.GetName().Version;
-        if (ver != null)
-        {
-            return $"{ver.Major}.{ver.Minor}.{Math.Max(0, ver.Build)}";
-        }
-        return "1.0.0";
+        return ver != null ? $"{ver.Major}.{ver.Minor}.{Math.Max(0, ver.Build)}" : "1.2.0";
     }
 
     public async Task<UpdateCheckResult> CheckForUpdatesAsync(bool includePrereleases = false, CancellationToken cancellationToken = default)
@@ -279,6 +275,8 @@ public class GitHubUpdateService : IUpdateService
         }
     }
 
+    internal static Func<ProcessStartInfo, Process?> ProcessLauncher { get; set; } = psi => Process.Start(psi);
+
     public bool LaunchInstaller(string installerPath)
     {
         try
@@ -292,7 +290,7 @@ public class GitHubUpdateService : IUpdateService
                 UseShellExecute = true
             };
 
-            var proc = Process.Start(psi);
+            var proc = ProcessLauncher(psi);
             return proc != null;
         }
         catch (Exception ex)

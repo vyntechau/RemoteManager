@@ -337,7 +337,61 @@
                 </StackPanel>
             </Border>
 
-            <!-- SECTION 6: LOGGING & DIAGNOSTICS -->
+            <!-- SECTION 6: BACKUP & DATA TRANSFER (EXPORT / IMPORT) -->
+            <TextBlock Text="Backup &amp; Data Transfer (Export / Import)" FontSize="16" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="18,16" Margin="0,0,0,24">
+                <StackPanel>
+                    <!-- Export Data -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="Export Connections &amp; Settings" FontWeight="SemiBold" FontSize="14"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="Create a portable backup (.json) with optional AES-256 password protection, or export to CSV"
+                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <ui:Button Grid.Column="1" Content="Export Data..." Click="OnExportDataClick"
+                                   Appearance="Secondary" Height="32" Padding="14,0" VerticalAlignment="Center">
+                            <ui:Button.Icon>
+                                <ui:SymbolIcon Symbol="ArrowDownload24"/>
+                            </ui:Button.Icon>
+                        </ui:Button>
+                    </Grid>
+
+                    <Separator Background="{DynamicResource ControlElevationBorderBrush}" Margin="0,0,0,16"/>
+
+                    <!-- Import Data -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="Import / Restore from File" FontWeight="SemiBold" FontSize="14"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="Restore from a RemoteManager JSON backup, import servers from a CSV spreadsheet, or add .rdp files"
+                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <ui:Button Grid.Column="1" Content="Import Data..." Click="OnImportDataClick"
+                                   Appearance="Secondary" Height="32" Padding="14,0" VerticalAlignment="Center">
+                            <ui:Button.Icon>
+                                <ui:SymbolIcon Symbol="ArrowUpload24"/>
+                            </ui:Button.Icon>
+                        </ui:Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- SECTION 7: LOGGING & DIAGNOSTICS -->
             <TextBlock Text="Logging &amp; Diagnostics" FontSize="16" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
 

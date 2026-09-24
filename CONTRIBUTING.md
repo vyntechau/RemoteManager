@@ -35,7 +35,7 @@ dotnet test
 ### Packaging (Portable ZIP & MSI)
 ```powershell
 # Build both Portable ZIP and Windows Installer MSI
-.\build.ps1 -Target All -Version 1.0.0
+.\build.ps1 -Target All -Version 1.2.0
 ```
 
 ---

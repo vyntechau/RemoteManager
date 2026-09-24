@@ -27,4 +27,7 @@ public interface IDatabaseService
     // Settings
     Task<AppSettings> GetSettingsAsync();
     Task SaveSettingsAsync(AppSettings settings);
+
+    // Maintenance / Bulk
+    Task ClearAllDataAsync();
 }

@@ -109,7 +109,11 @@ public class RdpAxClient : AxHost
 
         if (port > 0 && port != 3389)
         {
+            try { ocx.AdvancedSettings9.RDPPort = port; } catch { }
+            try { ocx.AdvancedSettings8.RDPPort = port; } catch { }
+            try { ocx.AdvancedSettings7.RDPPort = port; } catch { }
             try { ocx.AdvancedSettings2.RDPPort = port; } catch { }
+            try { ocx.AdvancedSettings.RDPPort = port; } catch { }
         }
 
         if (!string.IsNullOrWhiteSpace(username))
@@ -183,20 +187,35 @@ public class RdpAxClient : AxHost
 
     private static void ConfigureSecurityAndDisplay(dynamic ocx, int width, int height, int authLevel = 2)
     {
-        try
+        void ConfigureAdv(dynamic? adv)
         {
-            // Configure modern security and negotiate
-            dynamic adv = ocx.AdvancedSettings9 ?? ocx.AdvancedSettings7 ?? ocx.AdvancedSettings2 ?? ocx.AdvancedSettings;
-            adv.EnableCredSspSupport = true;
-            adv.NegotiateSecurityLayer = true;
-            // AuthenticationLevel: 0 = No auth, 1 = Warn on cert error, 2 = Require authentication
-            adv.AuthenticationLevel = authLevel;
-            adv.SmartSizing = true; // Auto-fit to window/tab size
+            if (adv == null) return;
+            try { adv.EnableCredSspSupport = true; } catch { }
+            try { adv.NegotiateSecurityLayer = true; } catch { }
+            try { adv.AuthenticationLevel = authLevel; } catch { }
+            try { adv.SmartSizing = true; } catch { }
+            // Enable clipboard redirection (cliprdr channel) between host OS and RDP sessions
+            try { adv.RedirectClipboard = true; } catch { }
+            // Enable drive redirection (rdpdr channel) - REQUIRED for copying and pasting files
+            try { adv.RedirectDrives = true; } catch { }
+            try { adv.RedirectDynamicDrives = true; } catch { }
+            try { adv.GrabFocusOnConnect = true; } catch { }
+            try { adv.allowBackgroundInput = 1; } catch { }
+            // Apply keyboard shortcuts / accelerators to remote session
+            try { adv.KeyboardHookMode = 1; } catch { }
         }
-        catch
-        {
-            // Fallbacks for older client settings
-        }
+
+        try { ConfigureAdv(ocx.AdvancedSettings9); } catch { }
+        try { ConfigureAdv(ocx.AdvancedSettings8); } catch { }
+        try { ConfigureAdv(ocx.AdvancedSettings7); } catch { }
+        try { ConfigureAdv(ocx.AdvancedSettings6); } catch { }
+        try { ConfigureAdv(ocx.AdvancedSettings5); } catch { }
+        try { ConfigureAdv(ocx.AdvancedSettings2); } catch { }
+        try { ConfigureAdv(ocx.AdvancedSettings); } catch { }
+
+        // Configure SecuredSettings for KeyboardHookMode (1 = Apply key combinations to the remote computer)
+        try { ocx.SecuredSettings2.KeyboardHookMode = 1; } catch { }
+        try { ocx.SecuredSettings.KeyboardHookMode = 1; } catch { }
 
         try
         {

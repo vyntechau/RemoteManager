@@ -478,4 +478,20 @@ public partial class SettingsView : UserControl
             LastUpdateCheckTextBlock.Text = $"Last checked: {_viewModel.Settings.LastUpdateCheckTime.Value.ToLocalTime():yyyy-MM-dd HH:mm} • vyntechau/RemoteManager";
         }
     }
+
+    private async void OnExportDataClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel != null)
+        {
+            await _viewModel.ExportDataAsync();
+        }
+    }
+
+    private async void OnImportDataClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel != null)
+        {
+            await _viewModel.ImportDataAsync();
+        }
+    }
 }

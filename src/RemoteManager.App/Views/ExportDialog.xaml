@@ -1,0 +1,161 @@
+<Window x:Class="RemoteManager.App.Views.ExportDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Export Connections &amp; Data"
+        Width="560" Height="620"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource ApplicationBackgroundBrush}">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
+
+    <Grid Margin="24,20,24,20">
+        <Grid.RowDefinitions>
+            <!-- Header -->
+            <RowDefinition Height="Auto"/>
+            <!-- Content Area -->
+            <RowDefinition Height="*"/>
+            <!-- Footer Actions -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 1. HEADER -->
+        <Border Grid.Row="0" Margin="0,0,0,16" Padding="0,0,0,12"
+                BorderThickness="0,0,0,1" BorderBrush="{DynamicResource ControlElevationBorderBrush}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Width="40" Height="40" CornerRadius="8" Margin="0,0,14,0"
+                        Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1">
+                    <ui:SymbolIcon Symbol="ArrowDownload24" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Export Data &amp; Configurations" FontSize="18" FontWeight="Bold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    <TextBlock Text="Backup your servers, credentials, and settings to a secure file"
+                               FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- 2. SCROLLABLE SETTINGS -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,16">
+            <StackPanel>
+                <!-- Export Format -->
+                <TextBlock Text="EXPORT FORMAT" FontSize="11" FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,8"/>
+
+                <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="14,12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <RadioButton x:Name="FormatJsonRadio" IsChecked="True" Checked="OnFormatChanged" Margin="0,0,0,8" Cursor="Hand">
+                            <StackPanel Margin="6,0,0,0">
+                                <TextBlock Text="RemoteManager Backup Package (.json)" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="Complete backup format supporting full connections, groups, credentials, and settings"
+                                           FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </RadioButton>
+
+                        <Rectangle Height="1" Fill="{DynamicResource ControlElevationBorderBrush}" Margin="0,6,0,8"/>
+
+                        <RadioButton x:Name="FormatCsvRadio" Checked="OnFormatChanged" Cursor="Hand">
+                            <StackPanel Margin="6,0,0,0">
+                                <TextBlock Text="Spreadsheet Table (.csv)" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="Standard CSV for editing in Excel, Google Sheets, or importing into other tools"
+                                           FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+                </Border>
+
+                <!-- Data to Include -->
+                <TextBlock Text="DATA TO INCLUDE" FontSize="11" FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,8"/>
+
+                <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="14,12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <!-- Connections -->
+                        <CheckBox x:Name="ConnectionsCheckBox" IsChecked="True" Checked="OnSelectionChanged" Unchecked="OnSelectionChanged" Margin="0,2" Cursor="Hand">
+                            <TextBlock Text="Connections &amp; Server Profiles" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="6,0,0,0"/>
+                        </CheckBox>
+
+                        <!-- Groups -->
+                        <CheckBox x:Name="GroupsCheckBox" IsChecked="True" Margin="0,4" Cursor="Hand">
+                            <TextBlock Text="Connection Groups &amp; Categories" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="6,0,0,0"/>
+                        </CheckBox>
+
+                        <!-- Credentials -->
+                        <CheckBox x:Name="CredentialsCheckBox" IsChecked="True" Checked="OnSelectionChanged" Unchecked="OnSelectionChanged" Margin="0,4" Cursor="Hand">
+                            <TextBlock Text="Saved Credentials &amp; Accounts" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="6,0,0,0"/>
+                        </CheckBox>
+
+                        <!-- Settings -->
+                        <CheckBox x:Name="SettingsCheckBox" IsChecked="False" Margin="0,4" Cursor="Hand">
+                            <TextBlock Text="Application Settings &amp; Display Preferences" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="6,0,0,0"/>
+                        </CheckBox>
+                    </StackPanel>
+                </Border>
+
+                <!-- Passphrase Protection (Visible for JSON with credentials) -->
+                <StackPanel x:Name="SecurityProtectionPanel">
+                    <TextBlock Text="CREDENTIAL SECURITY &amp; ENCRYPTION" FontSize="11" FontWeight="Bold"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,8"/>
+
+                    <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="14,12" Margin="0,0,0,12">
+                        <StackPanel>
+                            <CheckBox x:Name="EncryptWithPassphraseCheckBox" IsChecked="True" Checked="OnPassphraseOptionChanged" Unchecked="OnPassphraseOptionChanged" Margin="0,0,0,10" Cursor="Hand">
+                                <StackPanel Margin="6,0,0,0">
+                                    <TextBlock Text="Protect credentials with master passphrase" FontWeight="SemiBold" FontSize="13"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <TextBlock Text="Encrypts passwords using military-grade AES-256-GCM. Allows safe transfer to other PCs."
+                                               FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </CheckBox>
+
+                            <StackPanel x:Name="PassphraseInputsPanel" Margin="0,6,0,0">
+                                <TextBlock Text="Passphrase" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                <ui:PasswordBox x:Name="PassphraseBox" Margin="0,0,0,8" Height="32"/>
+
+                                <TextBlock Text="Confirm Passphrase" FontSize="11" FontWeight="Medium"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                <ui:PasswordBox x:Name="ConfirmPassphraseBox" Margin="0,0,0,8" Height="32"/>
+
+                                <TextBlock x:Name="PassphraseErrorText" Text="" FontSize="11" Foreground="#EF4444"
+                                           Visibility="Collapsed" Margin="0,0,0,4"/>
+                            </StackPanel>
+
+                            <CheckBox x:Name="IncludePasswordsWithoutPassphraseCheckBox" IsChecked="True"
+                                      Visibility="Collapsed" Margin="0,4,0,0" Cursor="Hand">
+                                <TextBlock Text="Export passwords using Windows DPAPI (tied to this user account)"
+                                           FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="6,0,0,0"/>
+                            </CheckBox>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 3. FOOTER ACTIONS -->
+        <Border Grid.Row="2" Padding="0,12,0,0"
+                BorderThickness="0,1,0,0" BorderBrush="{DynamicResource ControlElevationBorderBrush}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancel" Click="OnCancelClick"
+                        Width="90" Height="32" Margin="0,0,10,0" Cursor="Hand"/>
+                <ui:Button Content="Export..." Appearance="Primary" Click="OnExportClick"
+                           Width="110" Height="32" Cursor="Hand"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

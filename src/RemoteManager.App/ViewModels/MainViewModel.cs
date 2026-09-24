@@ -20,8 +20,10 @@ public partial class MainViewModel : ObservableObject
     private readonly IDatabaseService _databaseService;
     private readonly IEncryptionService _encryptionService;
     private readonly IUpdateService _updateService;
+    private readonly IExportImportService _exportImportService;
 
     public IUpdateService UpdateService => _updateService;
+    public IExportImportService ExportImportService => _exportImportService;
 
     // Update state observables
     [ObservableProperty]
@@ -117,17 +119,25 @@ public partial class MainViewModel : ObservableObject
     public Func<string, string, bool>? RequestConfirmation { get; set; }
     public Action<SessionTabViewModel>? RequestPopOutWindow { get; set; }
     public Action<SessionTabViewModel>? RequestFullscreenWindow { get; set; }
+    public Func<IEnumerable<Guid>?, Task<bool>>? RequestExportDialog { get; set; }
+    public Func<Task<bool>>? RequestImportDialog { get; set; }
+    public Func<string, Task<string?>>? RequestSaveFileDialog { get; set; }
     public Action<string, string> ShowErrorMessage { get; set; } = (title, msg) => MessageBox.Show(msg, title, MessageBoxButton.OK, MessageBoxImage.Error);
     public Action<string, string> ShowWarningMessage { get; set; } = (title, msg) => MessageBox.Show(msg, title, MessageBoxButton.OK, MessageBoxImage.Warning);
     internal Func<ConnectionItem, object?>? SessionControlFactory { get; set; }
 
     public ConnectionsViewModel ConnectionsVM { get; }
 
-    public MainViewModel(IDatabaseService databaseService, IEncryptionService encryptionService, IUpdateService? updateService = null)
+    public MainViewModel(
+        IDatabaseService databaseService, 
+        IEncryptionService encryptionService, 
+        IUpdateService? updateService = null,
+        IExportImportService? exportImportService = null)
     {
         _databaseService = databaseService;
         _encryptionService = encryptionService;
         _updateService = updateService ?? new GitHubUpdateService();
+        _exportImportService = exportImportService ?? new ExportImportService(_databaseService, _encryptionService);
         ConnectionsVM = new ConnectionsViewModel(this);
 
         UpdateStatusTitle = "Up to date";
@@ -877,6 +887,107 @@ public partial class MainViewModel : ObservableObject
         return cred != null ? cred.Title : "Unknown";
     }
 
+    #region Export & Import
+    [RelayCommand]
+    public async Task ExportDataAsync(object? parameter = null)
+    {
+        LogEngine.Instance.Info("UI", "MainViewModel: ExportData command invoked.");
+        IEnumerable<Guid>? selectedIds = null;
+        if (parameter is ConnectionItem conn)
+        {
+            selectedIds = [conn.Id];
+        }
+        else if (parameter is ConnectionCardViewModel card)
+        {
+            selectedIds = [card.Model.Id];
+        }
+        else if (parameter is IEnumerable<Guid> ids)
+        {
+            selectedIds = ids;
+        }
+
+        if (RequestExportDialog != null)
+        {
+            await RequestExportDialog.Invoke(selectedIds);
+        }
+        else
+        {
+            LogEngine.Instance.Warn("UI", "RequestExportDialog is null in MainViewModel.");
+        }
+    }
+
+    [RelayCommand]
+    public async Task ImportDataAsync()
+    {
+        LogEngine.Instance.Info("UI", "MainViewModel: ImportData command invoked.");
+        if (RequestImportDialog != null)
+        {
+            var success = await RequestImportDialog.Invoke();
+            if (success)
+            {
+                await LoadDataAsync();
+            }
+        }
+        else
+        {
+            LogEngine.Instance.Warn("UI", "RequestImportDialog is null in MainViewModel.");
+        }
+    }
+
+    [RelayCommand]
+    public async Task ExportConnectionToRdpAsync(object? parameter)
+    {
+        ConnectionItem? connection = parameter switch
+        {
+            ConnectionItem conn => conn,
+            ConnectionCardViewModel card => card.Model,
+            _ => null
+        };
+
+        if (connection == null)
+        {
+            LogEngine.Instance.Warn("UI", $"ExportConnectionToRdpAsync called with null connection parameter: {parameter}");
+            return;
+        }
+
+        LogEngine.Instance.Info("UI", $"Exporting RDP connection '{connection.DisplayName}'...");
+
+        string? targetPath = null;
+        if (RequestSaveFileDialog != null)
+        {
+            targetPath = await RequestSaveFileDialog.Invoke($"{connection.DisplayName}.rdp");
+        }
+        else
+        {
+            var sfd = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Export RDP File",
+                Filter = "Remote Desktop Connection (*.rdp)|*.rdp|All Files (*.*)|*.*",
+                FileName = $"{connection.DisplayName}.rdp",
+                DefaultExt = ".rdp"
+            };
+            if (SaveFileDialogShower(sfd) == true)
+            {
+                targetPath = sfd.FileName;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(targetPath))
+        {
+            try
+            {
+                await _exportImportService.ExportToRdpFileAsync(targetPath, connection);
+                LogEngine.Instance.Info("UI", $"Successfully exported RDP file to: {targetPath}");
+            }
+            catch (Exception ex)
+            {
+                LogEngine.Instance.Error("UI", $"Failed to export RDP file: {ex.Message}", ex);
+                ShowErrorMessage("Export Error", $"Failed to export RDP file: {ex.Message}");
+            }
+        }
+    }
+    #endregion
+
     #region Updates
     [RelayCommand]
     public async Task CheckForUpdatesAsync(bool silentOnUpToDate = false)
@@ -1019,13 +1130,15 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    internal static Func<ProcessStartInfo, Process?> ProcessLauncher { get; set; } = psi => Process.Start(psi);
+
     [RelayCommand]
     public void OpenReleasePage()
     {
         var url = LatestRelease?.HtmlUrl ?? "https://github.com/vyntechau/RemoteManager/releases";
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+            ProcessLauncher(new ProcessStartInfo { FileName = url, UseShellExecute = true });
         }
         catch (Exception ex)
         {
@@ -1041,7 +1154,7 @@ public partial class MainViewModel : ObservableObject
         {
             try
             {
-                Process.Start(new ProcessStartInfo { FileName = zipUrl, UseShellExecute = true });
+                ProcessLauncher(new ProcessStartInfo { FileName = zipUrl, UseShellExecute = true });
             }
             catch (Exception ex)
             {
@@ -1051,9 +1164,12 @@ public partial class MainViewModel : ObservableObject
     }
     #endregion
 
+    internal static Func<Microsoft.Win32.SaveFileDialog, bool?> SaveFileDialogShower { get; set; } = sfd => sfd.ShowDialog();
+    internal static Func<System.Windows.Threading.Dispatcher?> DispatcherProvider { get; set; } = () => Application.Current?.Dispatcher;
+
     internal Action<Action> SafeDispatch { get; set; } = action =>
     {
-        var disp = Application.Current?.Dispatcher;
+        var disp = DispatcherProvider();
         if (disp != null && disp.Thread.IsAlive && !disp.HasShutdownStarted && !disp.CheckAccess())
         {
             disp.BeginInvoke(action);

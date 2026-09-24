@@ -330,6 +330,7 @@ public class GitHubUpdateServiceTests
             Settings = settings;
             return Task.CompletedTask;
         }
+        public Task ClearAllDataAsync() => Task.CompletedTask;
     }
 
     private class TestEncryptionService : IEncryptionService

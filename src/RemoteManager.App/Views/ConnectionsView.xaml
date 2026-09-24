@@ -534,6 +534,24 @@
 
                 <!-- Right: Action Buttons & View Mode Switcher -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Import -->
+                    <ui:Button Command="{Binding ImportDataCommand}" Appearance="Secondary" Height="34" Margin="0,0,8,0"
+                            ToolTip="Import connections from JSON, CSV, or .rdp file" Cursor="Hand">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="ArrowUpload24" FontSize="14" Margin="0,0,6,0"/>
+                            <TextBlock Text="Import" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:Button>
+
+                    <!-- Export -->
+                    <ui:Button Command="{Binding ExportDataCommand}" Appearance="Secondary" Height="34" Margin="0,0,8,0"
+                            ToolTip="Export connections, credentials, or CSV spreadsheet" Cursor="Hand">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="ArrowDownload24" FontSize="14" Margin="0,0,6,0"/>
+                            <TextBlock Text="Export" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:Button>
+
                     <!-- Ping -->
                     <ui:Button Command="{Binding PingAllCommand}" Appearance="Secondary" Height="34" Margin="0,0,8,0"
                             ToolTip="Check network reachability for all visible servers" Cursor="Hand">
@@ -729,6 +747,14 @@
                                         <MenuItem Header="Duplicate Connection"
                                                   Command="{Binding PlacementTarget.Tag.DuplicateConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                        <Separator/>
+                                        <MenuItem Header="Export as RDP File..."
+                                                  Command="{Binding PlacementTarget.Tag.ExportConnectionToRdpCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                        <MenuItem Header="Export Server (JSON)..."
+                                                  Command="{Binding PlacementTarget.Tag.ExportDataCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                        <Separator/>
                                         <MenuItem Header="Delete Connection"
                                                   Command="{Binding PlacementTarget.Tag.DeleteConnectionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                   CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>

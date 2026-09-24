@@ -53,6 +53,22 @@ public partial class DetachedSessionWindow : Window
         // Transfer content from session
         SessionHostContainer.Content = session.Content;
 
+        Loaded += (s, e) =>
+        {
+            if (_session.Content is IRdpHostControl rdp)
+            {
+                Dispatcher.BeginInvoke(new Action(() => rdp.FocusRdp()), System.Windows.Threading.DispatcherPriority.Input);
+            }
+        };
+
+        Activated += (s, e) =>
+        {
+            if (_session.Content is IRdpHostControl rdp)
+            {
+                Dispatcher.BeginInvoke(new Action(() => rdp.FocusRdp()), System.Windows.Threading.DispatcherPriority.Input);
+            }
+        };
+
         Closing += (s, e) =>
         {
             if (!_isClosingFromDock)
